@@ -11,7 +11,9 @@
 <style>
   :root{
     --dusk-1:#101f12; --dusk-2:#1c3320; --dusk-3:#2a4a2c;
-    --pluis:#f2efe6; --stem:#b98a4a; --leaf:#5f8a4a;
+    --pluis:#f2efe6; --stem:#b98a4a; --leaf:#5f8a4a; --knop-groen:#4f7a3e;
+    --geel:#f3c634; --geel-diep:#e0972a; --hart-geel:#a9721e;
+    --verwelk:#8a6b3f; --verwelk-diep:#5c4527;
     --bloom:#8a7dd8; --bloom-deep:#5d4fb0;
     --ink:#f4f2ea; --ink-soft:rgba(244,242,234,.62); --ink-faint:rgba(244,242,234,.34);
   }
@@ -190,7 +192,7 @@
 <!-- terugkom-kiezer -->
 <div id="kiezer">
   <h2>Je zaadje ligt in de grond</h2>
-  <p>Over 3 dagen bloeit hier een paarse bloem. Hoe wil je het weten?</p>
+  <p>Over een paar dagen bloeit hier een gele bloem. Hoe wil je het weten?</p>
   <div class="optie" id="opt-push">
     <div class="ikoon">✳</div>
     <div><div class="t">Stuur me een seintje</div>
@@ -316,32 +318,113 @@ function tekenZaadje(t){
   ctx.beginPath(); ctx.ellipse(W/2, gy-6-t*4, 7, 5, .2, 0, Math.PI*2); ctx.fill();
 }
 function tekenKnop(t){
+  // Fase 'Knop': smalle groene knop met bracts, spits toelopend — nog gesloten
   const b = bloemBasis(), topY = H*0.86 - (H*0.86 - b.y)*t;
   tekenSteel(W/2, topY, 3); tekenBlad(t);
-  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bloom');
-  ctx.globalAlpha = .55 + t*.45;
-  ctx.beginPath(); ctx.ellipse(W/2, topY, 8+t*4, 10+t*5, 0, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
+  const h = 10 + t*9, w = 5 + t*3;
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--knop-groen');
+  ctx.beginPath();
+  ctx.moveTo(W/2, topY - h);
+  ctx.quadraticCurveTo(W/2 + w, topY - h*0.3, W/2 + w*0.75, topY + h*0.3);
+  ctx.quadraticCurveTo(W/2, topY + h*0.55, W/2 - w*0.75, topY + h*0.3);
+  ctx.quadraticCurveTo(W/2 - w, topY - h*0.3, W/2, topY - h);
+  ctx.fill();
+  // bracts-striping
+  ctx.strokeStyle = 'rgba(16,31,18,.35)'; ctx.lineWidth = 0.7;
+  for(let i = -2; i <= 2; i++){
+    ctx.beginPath();
+    ctx.moveTo(W/2 + i*w*0.32, topY - h*0.75);
+    ctx.lineTo(W/2 + i*w*0.42, topY + h*0.35);
+    ctx.stroke();
+  }
+}
+function tekenOpenen(t){
+  // Fase 'Openen': bracts gaan open, korte gele bloemblaadjes piepen eruit
+  const b = bloemBasis();
+  tekenSteel(b.x, b.y, 3); tekenBlad(1);
+  const n = 13, len = b.r*0.3*t;
+  for(let i = 0; i < n; i++){
+    const a = (i/n)*Math.PI*2;
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--geel');
+    ctx.beginPath();
+    ctx.ellipse(b.x + Math.cos(a)*len*0.6, b.y + Math.sin(a)*len*0.6,
+                len*0.5+2, 2.4, a, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // groene bracts die nog terugbuigen onderaan
+  for(let i = 0; i < 6; i++){
+    const a = (i/6)*Math.PI*2 + 0.3;
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--knop-groen');
+    ctx.beginPath();
+    ctx.ellipse(b.x + Math.cos(a)*10, b.y + Math.sin(a)*10 + 6, 6, 2.6, a, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--hart-geel');
+  ctx.beginPath(); ctx.arc(b.x, b.y, 5*t, 0, Math.PI*2); ctx.fill();
 }
 function tekenBloem(t){
+  // Fase 'Volle bloei': gele stralende bloem, zoals een echte paardenbloem
   const b = bloemBasis();
   tekenSteel(b.x, b.y, 3.5); tekenBlad(1);
-  const n = 9;
+  const n = 26;
   for(let ring = 0; ring < 2; ring++){
     for(let i = 0; i < n; i++){
-      const a = (i/n)*Math.PI*2 + ring*.35;
-      const rr = (b.r*.55 - ring*10)*t;
+      const a = (i/n)*Math.PI*2 + ring*0.12;
+      const len = (b.r*0.62 - ring*8) * t;
       ctx.fillStyle = ring
-        ? getComputedStyle(document.body).getPropertyValue('--bloom-deep')
-        : getComputedStyle(document.body).getPropertyValue('--bloom');
+        ? getComputedStyle(document.body).getPropertyValue('--geel-diep')
+        : getComputedStyle(document.body).getPropertyValue('--geel');
       ctx.beginPath();
-      ctx.ellipse(b.x + Math.cos(a)*rr*.62, b.y + Math.sin(a)*rr*.62,
-                  rr*.42, rr*.2, a, 0, Math.PI*2);
+      ctx.ellipse(b.x + Math.cos(a)*len*0.58, b.y + Math.sin(a)*len*0.58,
+                  len*0.46, 2.6, a, 0, Math.PI*2);
       ctx.fill();
     }
   }
-  ctx.fillStyle = '#3b2f78';
-  ctx.beginPath(); ctx.arc(b.x, b.y, 9*t, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--hart-geel');
+  ctx.beginPath(); ctx.arc(b.x, b.y, 8*t, 0, Math.PI*2); ctx.fill();
+}
+function tekenVerwelken(t){
+  // Fase 'Verwelkt': bloem sluit zich, blaadjes verkleuren bruin en hangen slap
+  const b = bloemBasis();
+  tekenSteel(b.x, b.y, 3); tekenBlad(1);
+  const n = 10, hang = 4 + t*10;
+  for(let i = 0; i < n; i++){
+    const a = (i/n)*Math.PI*2;
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--verwelk-diep');
+    ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(b.x + Math.cos(a)*5, b.y + Math.sin(a)*5);
+    ctx.quadraticCurveTo(b.x + Math.cos(a)*9, b.y + Math.sin(a)*4 + hang*0.5,
+                         b.x + Math.cos(a)*6, b.y + hang);
+    ctx.stroke();
+  }
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--verwelk');
+  ctx.beginPath(); ctx.ellipse(b.x, b.y - 2, 9 - t*1.5, 8, 0, 0, Math.PI*2); ctx.fill();
+}
+function tekenZaadvorming(t){
+  // Fase 'Zaadvorming': ronde, nog gesloten crème/witte knop — de pluis vormt zich vanbinnen
+  const b = bloemBasis();
+  tekenSteel(b.x, b.y, 3); tekenBlad(1);
+  // enkele verdroogde bruine restjes onderaan, zoals op de foto
+  for(let i = 0; i < 5; i++){
+    const a = (i/5)*Math.PI*2 + 0.4;
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--verwelk-diep');
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(b.x + Math.cos(a)*4, b.y + 4);
+    ctx.lineTo(b.x + Math.cos(a)*7, b.y + 10);
+    ctx.stroke();
+  }
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--pluis');
+  ctx.globalAlpha = .7 + t*.3;
+  ctx.beginPath(); ctx.arc(b.x, b.y, 6 + t*8, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // subtiele textuur-stippen zoals de florets op de foto
+  ctx.fillStyle = 'rgba(139,110,63,.35)';
+  for(let i = 0; i < 18; i++){
+    const a = i * 2.399963, r = (5 + t*7) * Math.sqrt(i/18);
+    ctx.beginPath(); ctx.arc(b.x + Math.cos(a)*r, b.y + Math.sin(a)*r, 0.9, 0, Math.PI*2); ctx.fill();
+  }
 }
 function tekenPluisje(p, x, y, s, alpha){
   ctx.save(); ctx.translate(x, y); ctx.rotate(p.rot); ctx.globalAlpha = alpha;
@@ -526,16 +609,25 @@ const FASES = [
     sub:'Oleg Morozov geeft je dit zaadje. Plant het, en er groeit iets moois op je telefoon.',
     cta:'Plant je zaadje', primair:true },
   { titel:'Je zaadje ligt in de grond',
-    sub:'Over 3 dagen bloeit hier een paarse bloem.',
+    sub:'Over een paar dagen bloeit hier een gele bloem.',
     cta:'Herinner me eraan', primair:false },
   { titel:'Hij ontkiemt',
-    sub:'Een dapper groen sprietje. Morgen staat er een knop.',
+    sub:'Een dapper groen sprietje. Straks staat er een knop.',
     cta:'Herinner me eraan', primair:false },
   { titel:'Er komt een knop aan',
-    sub:'Nog heel even. Morgen bloeit je bloem paars.',
+    sub:'Een stevige groene knop, nog helemaal gesloten.',
+    cta:'Herinner me eraan', primair:false },
+  { titel:'Ze opent zich',
+    sub:'De eerste gele blaadjes piepen naar buiten.',
     cta:'Herinner me eraan', primair:false },
   { titel:'Je bloem bloeit',
-    sub:'Kijk er gerust even naar. Morgen verandert ze in een blaasbloem.',
+    sub:'Volop geel. Kijk er gerust even naar.',
+    cta:'Herinner me eraan', primair:false },
+  { titel:'Ze verwelkt',
+    sub:'De bloem sluit zich en kleurt bruin — vanbinnen vormt zich het zaad.',
+    cta:'Herinner me eraan', primair:false },
+  { titel:'Het zaad vormt zich',
+    sub:'Een ronde, nog gesloten knop. Bijna zover.',
     cta:'Herinner me eraan', primair:false },
   { titel:'Ze is klaar om te blazen',
     sub:'Liefde, muziek en schoonheid zullen de wereld redden. Houd je telefoon dicht bij je mond en blaas zachtjes — of tik snel op de bloem.',
@@ -547,7 +639,7 @@ const FASES = [
 let fase = 0, groei = 0;
 function zetFase(n){
   fase = n; groei = 0;
-  blaasbaar = (n === 5);
+  blaasbaar = (n === 8);
   const f = FASES[n];
   document.getElementById('titel').textContent = f.titel;
   document.getElementById('ondertitel').textContent = f.sub;
@@ -556,7 +648,7 @@ function zetFase(n){
   cta.className = f.primair ? 'primair' : '';
   document.getElementById('hint').textContent = '';
   if(n === 1) setTimeout(() => document.getElementById('kiezer').classList.add('open'), 700);
-  if(n === 6){
+  if(n === 9){
     document.getElementById('paneel-tekst').textContent =
       'Geef je zaadje door aan iemand in de buurt — bij hen groeit generatie ' + (GEN+1) +
       '. Hoe verder je pluisjes reizen, hoe groter jouw winkans.';
@@ -570,14 +662,14 @@ function initOntvanger(){
   zetFase(0);
   document.getElementById('cta').addEventListener('click', () => {
     if(fase === 0) zetFase(1);
-    else if(fase >= 1 && fase <= 4) document.getElementById('kiezer').classList.add('open');
-    else if(fase === 5){ if(!micActief) startMic(); }
-    else if(fase === 6) document.getElementById('paneel').classList.add('open');
+    else if(fase >= 1 && fase <= 7) document.getElementById('kiezer').classList.add('open');
+    else if(fase === 8){ if(!micActief) startMic(); }
+    else if(fase === 9) document.getElementById('paneel').classList.add('open');
   });
   document.getElementById('demo-knop').addEventListener('click', () => {
     document.getElementById('kiezer').classList.remove('open');
-    if(fase < 5) zetFase(fase + 1);
-    else if(fase === 5){ blaas(1); blaas(1); blaas(1); blaas(1); }
+    if(fase < 8) zetFase(fase + 1);
+    else if(fase === 8){ blaas(1); blaas(1); blaas(1); blaas(1); }
   });
 
   /* --- terugkom-kiezer --- */
@@ -675,11 +767,14 @@ function lus(nu){
     if(fase === 1) tekenZaadje(t);
     else if(fase === 2){ tekenSteel(W/2, H*.86 - 60*t, 2.5); tekenBlad(t*.6); }
     else if(fase === 3) tekenKnop(t);
-    else if(fase === 4) tekenBloem(t);
-    else if(fase === 5 || fase === 6){
+    else if(fase === 4) tekenOpenen(t);
+    else if(fase === 5) tekenBloem(t);
+    else if(fase === 6) tekenVerwelken(t);
+    else if(fase === 7) tekenZaadvorming(t);
+    else if(fase === 8 || fase === 9){
       const vast = tekenBlaasbloem(dt);
-      if(fase === 5 && vast === 0) zetFase(6);
-      else if(fase === 5 && vast < AANTAL_PLUIS)
+      if(fase === 8 && vast === 0) zetFase(9);
+      else if(fase === 8 && vast < AANTAL_PLUIS)
         document.getElementById('hint').textContent = 'Nog ' + vast + ' pluisjes te gaan';
     }
   }
