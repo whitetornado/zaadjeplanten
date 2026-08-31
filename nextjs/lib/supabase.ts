@@ -32,6 +32,122 @@ export interface Zaadje {
   geplant_op: string | null;
   geblazen_op: string | null;
   email: string | null;
+  gewonnen_op?: string | null;
+}
+
+export type TuinLijn = {
+  id: string;
+  naam: string;
+  aantal: number;
+  diepste: number;
+  levend: number;
+};
+
+export type TuinPrijs = {
+  id: string;
+  email: string;
+  generatie: number;
+  lijnNaam: string;
+  geplant_op: string | null;
+  geblazen_op: string | null;
+  gewonnen_op: string | null;
+};
+
+export type TuinOverzicht = {
+  totaalZaadjes: number;
+  totaalGeblazen: number;
+  totaalEmails: number;
+  diepsteGeneratie: number;
+  lijnen: TuinLijn[];
+  prijzen: TuinPrijs[];
+  gewonnenKolomOntbreekt: boolean;
+};
+
+function lijnNaamVanJoin(waarde: unknown) {
+  if (!waarde) return "onbekend";
+  if (Array.isArray(waarde)) return waarde[0]?.naam ?? "onbekend";
+  if (typeof waarde === "object" && "naam" in waarde) {
+    return String((waarde as { naam?: string }).naam ?? "onbekend");
+  }
+  return "onbekend";
+}
+
+export async function haalTuinOverzicht(): Promise<TuinOverzicht> {
+  const supabase = supabaseServer();
+
+  const { data: zaadjes } = await supabase
+    .from("zaadjes")
+    .select("id, lijn_id, generatie, geplant_op, geblazen_op, email");
+
+  const { data: lijnenRijen } = await supabase
+    .from("lijnen")
+    .select("id, naam")
+    .order("naam");
+
+  const alle = zaadjes ?? [];
+  const totaalZaadjes = alle.length;
+  const totaalGeblazen = alle.filter((z) => z.geblazen_op).length;
+  const totaalEmails = alle.filter((z) => typeof z.email === "string" && z.email.trim()).length;
+  const diepsteGeneratie = alle.reduce((m, z) => Math.max(m, z.generatie ?? 0), 0);
+
+  const perLijn = new Map<string, TuinLijn>();
+  for (const lijn of lijnenRijen ?? []) {
+    perLijn.set(lijn.id, { id: lijn.id, naam: lijn.naam, aantal: 0, diepste: 0, levend: 0 });
+  }
+  for (const z of alle) {
+    let lijn = perLijn.get(z.lijn_id);
+    if (!lijn) {
+      lijn = { id: z.lijn_id, naam: "onbekend", aantal: 0, diepste: 0, levend: 0 };
+      perLijn.set(z.lijn_id, lijn);
+    }
+    lijn.aantal += 1;
+    lijn.diepste = Math.max(lijn.diepste, z.generatie ?? 0);
+    const stadium = berekenStadium(z);
+    if (stadium !== "verwelkt" && stadium !== "ongeplant") lijn.levend += 1;
+  }
+
+  let gewonnenKolomOntbreekt = false;
+  try {
+    const { error: kolomFout } = await supabase
+      .from("zaadjes")
+      .select("gewonnen_op")
+      .limit(1);
+    gewonnenKolomOntbreekt = kolomFout != null;
+  } catch {
+    gewonnenKolomOntbreekt = true;
+  }
+
+  const prijsVelden = gewonnenKolomOntbreekt
+    ? "id, email, generatie, geplant_op, geblazen_op, lijnen(naam)"
+    : "id, email, generatie, geplant_op, geblazen_op, gewonnen_op, lijnen(naam)";
+  const { data: prijsRijen } = await supabase
+    .from("zaadjes")
+    .select(prijsVelden)
+    .gte("generatie", 10)
+    .not("email", "is", null)
+    .order("generatie", { ascending: false });
+
+  const prijzen: TuinPrijs[] = (prijsRijen ?? [])
+    .filter((z) => typeof z.email === "string" && z.email.trim())
+    .map((z) => ({
+      id: z.id,
+      email: z.email as string,
+      generatie: z.generatie,
+      lijnNaam: lijnNaamVanJoin(z.lijnen),
+      geplant_op: z.geplant_op,
+      geblazen_op: z.geblazen_op,
+      gewonnen_op: "gewonnen_op" in z ? (z.gewonnen_op as string | null) : null,
+    }));
+
+  return {
+    totaalZaadjes,
+    totaalGeblazen,
+    totaalEmails,
+    diepsteGeneratie,
+    lijnen: [...perLijn.values()].sort((a, b) => b.aantal - a.aantal),
+    prijzen,
+    gewonnenKolomOntbreekt,
+  };
 }
 
 /**

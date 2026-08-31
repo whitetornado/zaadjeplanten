@@ -198,3 +198,65 @@ button.primair:active{background:var(--bloom)}
 }
 .podium-start input::placeholder{color:var(--ink-faint)}
 .podium-start input:focus{border-color:var(--bloom)}
+
+/* ---------- tuin (intern overzicht) ---------- */
+body:has(.tuin-pagina){
+  overflow:auto; height:auto;
+  user-select:text; -webkit-user-select:text;
+  display:block;
+}
+.tuin-pagina{
+  max-width:960px; margin:0 auto;
+  padding:calc(18px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom));
+}
+.tuin-pagina h1{min-height:0; margin:4px 0 0; font-size:clamp(26px,5vw,34px)}
+.tuin-pagina h2{
+  font-family:'Fraunces',serif; font-weight:400; font-size:20px;
+  margin:28px 0 10px;
+}
+.tuin-pagina button{width:auto; max-width:none; padding:8px 16px; font-size:13px}
+.tuin-kop{display:flex; align-items:flex-start; justify-content:space-between; gap:16px}
+.tuin-login{min-height:100dvh; display:flex; flex-direction:column; justify-content:center; max-width:360px}
+.tuin-lead{color:var(--ink-soft); margin:10px 0 18px; font-size:14px; line-height:1.5}
+.tuin-form{display:flex; flex-direction:column; gap:12px}
+.tuin-form input{
+  font:inherit; font-size:15px; color:var(--ink);
+  background:rgba(244,242,234,.07);
+  border:1px solid rgba(244,242,234,.22); border-radius:999px;
+  padding:13px 18px; outline:none;
+}
+.tuin-form input:focus{border-color:var(--bloom)}
+.tuin-form button{width:100%; max-width:none; padding:13px 26px; font-size:15px}
+.tuin-fout{color:#e8a0a0; font-size:14px; margin-top:14px; line-height:1.45}
+.tuin-leeg{color:var(--ink-soft); font-size:14px}
+.tuin-sql{font-size:12.5px; color:var(--ink-faint); line-height:1.5; margin-bottom:12px}
+.tuin-sql code{
+  display:block; margin-top:6px; padding:10px 12px;
+  background:rgba(0,0,0,.25); border-radius:8px;
+  color:var(--pluis); word-break:break-all;
+}
+.tuin-cijfers{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:22px;
+}
+@media (min-width:640px){
+  .tuin-cijfers{grid-template-columns:repeat(4,1fr)}
+}
+.tuin-cijfers div{
+  background:rgba(244,242,234,.06);
+  border:1px solid rgba(244,242,234,.12);
+  border-radius:14px; padding:14px 16px;
+}
+.tuin-cijfers strong{display:block; font-family:'Fraunces',serif; font-size:28px; font-weight:400}
+.tuin-cijfers span{display:block; font-size:12px; color:var(--ink-soft); margin-top:4px}
+.tuin-tabel-wrap{overflow-x:auto}
+.tuin-tabel{width:100%; border-collapse:collapse; font-size:13.5px}
+.tuin-tabel th{
+  text-align:left; font-weight:500; color:var(--ink-faint);
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  padding:8px 10px 8px 0; border-bottom:1px solid rgba(244,242,234,.14);
+}
+.tuin-tabel td{
+  padding:10px 10px 10px 0; border-bottom:1px solid rgba(244,242,234,.08);
+  vertical-align:middle;
+}
+.tuin-gewonnen{color:var(--ink-soft); font-size:12px}
