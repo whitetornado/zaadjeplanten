@@ -3,6 +3,7 @@ import { supabaseServer, berekenStadium } from "@/lib/supabase";
 import ZaadjeClient from "./ZaadjeClient";
 
 export const dynamic = "force-dynamic"; // stadium hangt af van "nu", dus nooit cachen
+export const revalidate = 0;
 
 export default async function ZaadjePagina({
   params,
