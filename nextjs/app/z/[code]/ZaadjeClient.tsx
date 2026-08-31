@@ -1,0 +1,413 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AANTAL_PLUIS, BloemMotor, startMic } from "@/lib/bloem-canvas";
+
+type Stadium =
+  | "ongeplant" | "zaadje" | "kiem" | "knop" | "openen"
+  | "bloem" | "verwelkt" | "zaadvorming" | "zaadpluis" | "uitgeblazen";
+
+const TEKST: Record<Stadium, { titel: string; sub: string; cta: string; primair: boolean }> = {
+  ongeplant:   { titel: "Met liefde gegeven", sub: "Oleg Morozov geeft je dit zaadje. Plant het, en er groeit iets moois op je telefoon.", cta: "Plant je zaadje", primair: true },
+  zaadje:      { titel: "Je zaadje ligt in de grond", sub: "Over een paar dagen bloeit hier een gele bloem.", cta: "Herinner me eraan", primair: false },
+  kiem:        { titel: "Hij ontkiemt", sub: "Een dapper groen sprietje. Straks staat er een knop.", cta: "Herinner me eraan", primair: false },
+  knop:        { titel: "Er komt een knop aan", sub: "Een stevige groene knop, nog helemaal gesloten.", cta: "Herinner me eraan", primair: false },
+  openen:      { titel: "Ze opent zich", sub: "De eerste gele blaadjes piepen naar buiten.", cta: "Herinner me eraan", primair: false },
+  bloem:       { titel: "Je bloem bloeit", sub: "Volop geel. Kijk er gerust even naar.", cta: "Herinner me eraan", primair: false },
+  verwelkt:    { titel: "Ze verwelkt", sub: "De bloem sluit zich en kleurt bruin — vanbinnen vormt zich het zaad.", cta: "Herinner me eraan", primair: false },
+  zaadvorming: { titel: "Het zaad vormt zich", sub: "Een ronde, nog gesloten knop. Bijna zover.", cta: "Herinner me eraan", primair: false },
+  zaadpluis:   { titel: "Ze is klaar om te blazen",
+                 sub: "Liefde, muziek en schoonheid zullen de wereld redden. Houd je telefoon dicht bij je mond en blaas zachtjes — of tik snel op de bloem.",
+                 cta: "Blazen met je microfoon", primair: true },
+  uitgeblazen: { titel: "Daar gaan je pluisjes", sub: "Elk pluisje is een zaadje voor iemand anders.", cta: "Geef je zaadje door", primair: true },
+};
+
+const VOLGORDE: Stadium[] = [
+  "ongeplant", "zaadje", "kiem", "knop", "openen",
+  "bloem", "verwelkt", "zaadvorming", "zaadpluis", "uitgeblazen",
+];
+
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+export default function ZaadjeClient({
+  code, generatie, lijnNaam, stadiumBijLaden,
+}: { code: string; generatie: number; lijnNaam: string; stadiumBijLaden: Stadium }) {
+  const [stadium, setStadium] = useState<Stadium>(stadiumBijLaden);
+  const [deelLink, setDeelLink] = useState<string | null>(null);
+  const [bezig, setBezig] = useState(false);
+  const [kiezerOpen, setKiezerOpen] = useState(false);
+  const [paneelOpen, setPaneelOpen] = useState(false);
+  const [mailZichtbaar, setMailZichtbaar] = useState(false);
+  const [mail, setMail] = useState("");
+  const [gekozen, setGekozen] = useState<string | null>(null);
+  const [hint, setHint] = useState("");
+  const [toast, setToast] = useState("");
+  const [toastAan, setToastAan] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const motorRef = useRef<BloemMotor | null>(null);
+  const stadiumRef = useRef(stadium);
+  const groeiRef = useRef(0);
+  const blaasKlaarBezig = useRef(false);
+  const micStopRef = useRef<(() => void) | null>(null);
+  const micActiefRef = useRef(false);
+  const geluidGespeeld = useRef(false);
+  const hintRef = useRef("");
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const blaasKlaarRef = useRef<() => void>(() => {});
+
+  stadiumRef.current = stadium;
+
+  const toastMelding = useCallback((txt: string) => {
+    setToast(txt);
+    setToastAan(true);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastAan(false), 2000);
+  }, []);
+
+  useEffect(() => {
+    groeiRef.current = 0;
+    if (stadium === "zaadpluis") geluidGespeeld.current = false;
+  }, [stadium]);
+
+  async function plant() {
+    setBezig(true);
+    const res = await fetch("/api/plant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    setBezig(false);
+    if (res.ok) {
+      setStadium("zaadje");
+      setTimeout(() => setKiezerOpen(true), 700);
+    }
+  }
+
+  async function blaasKlaar() {
+    if (blaasKlaarBezig.current) return;
+    blaasKlaarBezig.current = true;
+    setBezig(true);
+    const res = await fetch("/api/blaas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBezig(false);
+    if (res.ok) {
+      setStadium("uitgeblazen");
+      setDeelLink(data.deelLink);
+      setHint("");
+      setTimeout(() => setPaneelOpen(true), 900);
+    } else {
+      toastMelding(data.fout || "Deze bloem is nog niet klaar om te blazen");
+    }
+  }
+  blaasKlaarRef.current = blaasKlaar;
+
+  function speelBlaasGeluid() {
+    if (geluidGespeeld.current) return;
+    geluidGespeeld.current = true;
+    const a = audioRef.current;
+    if (!a) return;
+    a.currentTime = 0;
+    a.volume = 0.85;
+    a.play().catch(() => {});
+  }
+
+  function blaas(kracht: number) {
+    if (stadiumRef.current !== "zaadpluis") return;
+    speelBlaasGeluid();
+    motorRef.current?.blaas(kracht);
+  }
+
+  async function zetMicAan() {
+    if (micActiefRef.current) return;
+    try {
+      micActiefRef.current = true;
+      const stop = await startMic(
+        () => stadiumRef.current === "zaadpluis",
+        (k) => blaas(k),
+        setHint,
+        false
+      );
+      micStopRef.current = stop;
+    } catch {
+      micActiefRef.current = false;
+      setHint("Geen microfoon? Tik dan snel op de bloem.");
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      micStopRef.current?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const motor = new BloemMotor(canvas);
+    motorRef.current = motor;
+    if (stadiumRef.current === "uitgeblazen") {
+      motor.pluisjes.forEach((p) => { p.weg = true; });
+    }
+    motor.maat();
+    const onResize = () => motor.maat();
+    window.addEventListener("resize", onResize);
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let vorige = performance.now();
+    let raf = 0;
+
+    function lus(nu: number) {
+      const dt = Math.min(50, nu - vorige);
+      vorige = nu;
+      motor.perf = nu;
+      motor.ctx.clearRect(0, 0, motor.W, motor.H);
+      motor.tekenGrond();
+      if (groeiRef.current < 1) {
+        groeiRef.current = Math.min(1, groeiRef.current + dt * (reducedMotion ? 1 : 0.0016));
+      }
+      const t = reducedMotion ? 1 : groeiRef.current * groeiRef.current * (3 - 2 * groeiRef.current);
+      const s = stadiumRef.current;
+      if (s === "zaadje") motor.tekenZaadje(t);
+      else if (s === "kiem") motor.tekenKiem(t);
+      else if (s === "knop") motor.tekenKnop(t);
+      else if (s === "openen") motor.tekenOpenen(t);
+      else if (s === "bloem") motor.tekenBloem(t);
+      else if (s === "verwelkt") motor.tekenVerwelken(t);
+      else if (s === "zaadvorming") motor.tekenZaadvorming(t);
+      else if (s === "zaadpluis" || s === "uitgeblazen") {
+        const vast = motor.tekenBlaasbloem(dt);
+        if (s === "zaadpluis" && vast === 0) blaasKlaarRef.current();
+        else if (s === "zaadpluis" && vast < AANTAL_PLUIS) {
+          const tekst = "Nog " + vast + " pluisjes te gaan";
+          if (hintRef.current !== tekst) {
+            hintRef.current = tekst;
+            setHint(tekst);
+          }
+        }
+      }
+      raf = requestAnimationFrame(lus);
+    }
+    raf = requestAnimationFrame(lus);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      motorRef.current = null;
+    };
+  }, []);
+
+  function onCanvasPointer(ev: React.PointerEvent<HTMLCanvasElement>) {
+    if (stadium === "ongeplant") {
+      plant();
+      return;
+    }
+    if (stadium !== "zaadpluis") return;
+    if (motorRef.current?.tikOpBloem(ev.clientX, ev.clientY)) blaas(0.5);
+  }
+
+  function onCta() {
+    if (stadium === "ongeplant") plant();
+    else if (stadium === "zaadpluis") { if (!micActiefRef.current) zetMicAan(); }
+    else if (stadium === "uitgeblazen") setPaneelOpen(true);
+    else setKiezerOpen(true);
+  }
+
+  function demoVooruit() {
+    setKiezerOpen(false);
+    if (stadium === "zaadpluis") {
+      blaas(1); blaas(1); blaas(1); blaas(1);
+      return;
+    }
+    const i = VOLGORDE.indexOf(stadium);
+    if (i >= 0 && i < VOLGORDE.length - 1) setStadium(VOLGORDE[i + 1]);
+  }
+
+  async function kiesPush() {
+    if ("Notification" in window) {
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") {
+        kies("push", "Seintje staat aan");
+        return;
+      }
+    }
+    toastMelding("Melding niet gelukt — kies gerust mail of agenda");
+  }
+
+  async function kiesMail() {
+    const v = mail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) {
+      toastMelding("Dat lijkt geen geldig e-mailadres");
+      return;
+    }
+    await fetch("/api/plant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, email: v }),
+    });
+    kies("mail", "We mailen je als ze bloeit");
+    setMailZichtbaar(false);
+  }
+
+  function kiesAgenda() {
+    const start = new Date(Date.now() + 3 * 24 * 3600 * 1000);
+    const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const url = `${location.origin}/z/${code}`;
+    const ics = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//zaadjeplanten//NL",
+      "BEGIN:VEVENT", "UID:" + code + "@zaadjeplanten.nl",
+      "DTSTAMP:" + stamp(new Date()),
+      "DTSTART:" + stamp(start),
+      "DTEND:" + stamp(new Date(start.getTime() + 30 * 60 * 1000)),
+      "SUMMARY:🌸 Je bloem bloeit — ga kijken",
+      "DESCRIPTION:Open je bloem: " + url,
+      "URL:" + url,
+      "END:VEVENT", "END:VCALENDAR",
+    ].join("\r\n");
+    const a = document.createElement("a");
+    a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
+    a.download = "je-bloem-bloeit.ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    kies("agenda", "Staat in je agenda");
+  }
+
+  function kies(id: string, melding: string) {
+    setGekozen(id);
+    toastMelding(melding);
+    setTimeout(() => setKiezerOpen(false), 1100);
+  }
+
+  async function deel() {
+    if (!deelLink) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Er waait een zaadje jouw kant op",
+          text: "Iemand blies een blaasbloem naar je toe. Plant je zaadje:",
+          url: deelLink,
+        });
+      } catch { /* gebruiker annuleerde */ }
+    } else {
+      kopieer();
+    }
+  }
+
+  function kopieer() {
+    if (!deelLink) return;
+    navigator.clipboard.writeText(deelLink).then(() => toastMelding("Link gekopieerd"));
+  }
+
+  const t = TEKST[stadium];
+
+  return (
+    <main className="bloem-app">
+      <header>
+        <div className="lijn">
+          {generatie === 1
+            ? `Lijn ${lijnNaam} · vers van het optreden`
+            : `Dit zaadje reisde al langs ${generatie - 1} telefoon${generatie - 1 === 1 ? "" : "s"}`}
+        </div>
+        <h1>{t.titel}</h1>
+        <p className="sub">{t.sub}</p>
+      </header>
+
+      <div id="stage-wrap">
+        <canvas id="c" ref={canvasRef} onPointerDown={onCanvasPointer} />
+      </div>
+
+      <footer>
+        <button
+          className={t.primair ? "primair" : ""}
+          onClick={onCta}
+          disabled={bezig}
+        >
+          {t.cta}
+        </button>
+        <div className="hint">{hint}</div>
+        {IS_DEV && (
+          <button className="stille-knop" type="button" onClick={demoVooruit}>
+            demo: spoel de tijd vooruit
+          </button>
+        )}
+      </footer>
+
+      <div id="kiezer" className={kiezerOpen ? "open" : ""}>
+        <h2>Je zaadje ligt in de grond</h2>
+        <p>Over een paar dagen bloeit hier een gele bloem. Hoe wil je het weten?</p>
+        <div
+          className={"optie" + (gekozen === "push" ? " gekozen" : "")}
+          onClick={kiesPush}
+        >
+          <div className="ikoon">✳</div>
+          <div>
+            <div className="t">Stuur me een seintje</div>
+            <div className="s">Een melding op je telefoon zodra ze bloeit</div>
+          </div>
+        </div>
+        <div
+          className={"optie" + (gekozen === "mail" ? " gekozen" : "")}
+          onClick={() => setMailZichtbaar(true)}
+        >
+          <div className="ikoon">✉</div>
+          <div>
+            <div className="t">Mail me als ze bloeit</div>
+            <div className="s">Ook handig om later je winkans te volgen</div>
+          </div>
+        </div>
+        <div id="mail-rij" className={mailZichtbaar ? "zichtbaar" : ""}>
+          <input
+            type="email"
+            placeholder="je@email.nl"
+            inputMode="email"
+            autoComplete="email"
+            value={mail}
+            onChange={(e) => setMail(e.target.value)}
+          />
+          <button className="primair" type="button" onClick={kiesMail}>Oké</button>
+        </div>
+        <div
+          className={"optie" + (gekozen === "agenda" ? " gekozen" : "")}
+          onClick={kiesAgenda}
+        >
+          <div className="ikoon">📅</div>
+          <div>
+            <div className="t">Zet het in mijn agenda</div>
+            <div className="s">Eén tik, werkt op elke telefoon</div>
+          </div>
+        </div>
+        <button className="zelf" type="button" onClick={() => setKiezerOpen(false)}>
+          ik onthoud het zelf wel
+        </button>
+      </div>
+
+      <div id="paneel" className={paneelOpen ? "open" : ""}>
+        <h2>Je pluisjes zijn onderweg</h2>
+        <p>
+          Geef je zaadje door aan iemand in de buurt — bij hen groeit generatie {generatie + 1}.
+          Hoe verder je pluisjes reizen, hoe groter jouw winkans.
+        </p>
+        <div className="rij">
+          <button className="primair" type="button" onClick={deel} disabled={!deelLink}>
+            Deel de link
+          </button>
+          <button type="button" onClick={kopieer} disabled={!deelLink}>Kopieer link</button>
+        </div>
+        <div className="artiest">
+          <div className="foto">O</div>
+          <span>
+            Uit het hart van <strong>Oleg Morozov</strong> ·{" "}
+            <a href="https://olegpianist.nl" target="_blank" rel="noopener">luister mee</a>
+          </span>
+        </div>
+      </div>
+
+      <div id="toast" className={toastAan ? "zichtbaar" : ""}>{toast || "Gelukt"}</div>
+      <audio ref={audioRef} preload="auto" src="/blaas.mp3" />
+    </main>
+  );
+}
