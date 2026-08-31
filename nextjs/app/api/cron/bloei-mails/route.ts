@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { berekenStadium, supabaseServer } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   if (process.env.VERCEL_ENV === "production") {
@@ -77,12 +78,15 @@ export async function GET(req: NextRequest) {
     berekend_stadium: berekenStadium(z),
   }));
 
-  return NextResponse.json({
-    ok: true,
-    bekeken: kandidaten?.length ?? 0,
-    bloeiend: bloeiend.length,
-    verzonden,
-    fouten,
-    details,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      bekeken: kandidaten?.length ?? 0,
+      bloeiend: bloeiend.length,
+      verzonden,
+      fouten,
+      details,
+    },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  );
 }
