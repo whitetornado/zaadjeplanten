@@ -24,13 +24,69 @@ function tekenQr(vak: HTMLElement, url: string) {
   if (!QR) return false;
   new QR(vak, {
     text: url,
-    width: 150,
-    height: 150,
+    width: 114,
+    height: 114,
     colorDark: "#2a2417",
     colorLight: "#f2efe6",
     correctLevel: QR.CorrectLevel?.M ?? 0,
   });
   return true;
+}
+
+function PluisjesKroon({ aantal = 44, straal = 140 }: { aantal?: number; straal?: number }) {
+  const lagen = [
+    { n: aantal, factor: 1, offset: 0 },
+    { n: Math.round(aantal * 0.7), factor: 0.8, offset: 0.5 },
+  ];
+  const haartjes = lagen.flatMap((laag, li) =>
+    Array.from({ length: laag.n }, (_, i) => {
+      const hoek = ((i + laag.offset) / laag.n) * Math.PI * 2 - Math.PI / 2;
+      const lengte = straal * laag.factor * (0.75 + Math.sin((i + li * 3) * 2.7) * 0.15);
+      const x1 = Math.cos(hoek) * (straal * 0.42);
+      const y1 = Math.sin(hoek) * (straal * 0.42);
+      const x2 = Math.cos(hoek) * lengte;
+      const y2 = Math.sin(hoek) * lengte;
+      const cx = Math.cos(hoek) * (straal * 0.68 * laag.factor) - Math.sin(hoek) * 14;
+      const cy = Math.sin(hoek) * (straal * 0.68 * laag.factor) + Math.cos(hoek) * 14;
+      return (
+        <path
+          key={`${li}-${i}`}
+          d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
+          stroke="var(--pluis, #f2efe6)"
+          strokeWidth="1"
+          strokeLinecap="round"
+          fill="none"
+          opacity={0.5 + Math.sin(i * 1.3 + li) * 0.25}
+        />
+      );
+    })
+  );
+  return (
+    <svg
+      className="pluis-kroon"
+      viewBox={`${-straal - 20} ${-straal - 20} ${(straal + 20) * 2} ${(straal + 20) * 2}`}
+      aria-hidden="true"
+    >
+      {haartjes}
+    </svg>
+  );
+}
+
+function ZaadPeul() {
+  return (
+    <svg className="zaadpeul" viewBox="0 0 16 40" aria-hidden="true">
+      <path d="M8 0 L8 14" stroke="#c4ae7a" strokeWidth="1.15" strokeLinecap="round" />
+      <path
+        d="M8 14 C12.4 16.5 13.6 23 13.6 28 C13.6 33.5 11 38.2 8 40 C5 38.2 2.4 33.5 2.4 28 C2.4 23 3.6 16.5 8 14 Z"
+        fill="#cbb892"
+        stroke="#a89060"
+        strokeWidth="0.55"
+      />
+      <path d="M8 16 Q6.4 27 8 38" stroke="#8a7344" strokeWidth="0.45" fill="none" opacity="0.5" />
+      <path d="M8 16 L8 38" stroke="#8a7344" strokeWidth="0.55" fill="none" opacity="0.55" />
+      <path d="M8 16 Q9.6 27 8 38" stroke="#8a7344" strokeWidth="0.45" fill="none" opacity="0.5" />
+    </svg>
+  );
 }
 
 export default function PodiumPagina() {
@@ -138,7 +194,7 @@ export default function PodiumPagina() {
       motor.perf = nu;
       motor.ctx.clearRect(0, 0, motor.W, motor.H);
       motor.tekenGrond();
-      const vast = motor.tekenBlaasbloem(dt);
+      const vast = motor.tekenBlaasbloem(dt, !klaarRef.current);
       if (!klaarRef.current && vast === 0) {
         klaarRef.current = true;
         setKlaar(true);
@@ -204,7 +260,13 @@ export default function PodiumPagina() {
             <canvas id="c" ref={canvasRef} onPointerDown={onCanvasPointer} />
             <div id="qr-zaadje" className={klaar ? "zichtbaar" : ""} role="group" aria-label="QR-code om je zaadje te ontvangen">
               <div className="zaadvorm">
-                <div id="qr-vak" ref={qrVakRef} />
+                <PluisjesKroon />
+                <ZaadPeul />
+                <div className="qr-schijf">
+                  <div id="qr-vak" ref={qrVakRef} />
+                </div>
+              </div>
+              <div className="zaad-caption">
                 <div className="zaad-tekst">Vang je zaadje — scan</div>
                 <div className="zaad-sub">elke scan krijgt z'n eigen zaadje</div>
               </div>

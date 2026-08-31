@@ -305,21 +305,23 @@ export class BloemMotor {
     ctx.globalAlpha = 1;
   }
 
-  tekenBlaasbloem(dt: number) {
+  tekenBlaasbloem(dt: number, toonPlant = true) {
     const { ctx, W, pluisjes } = this;
     const b = this.bloemBasis();
-    this.tekenSteel(b.x, b.y, 3);
-    this.tekenBlad(1);
-    ctx.fillStyle = "#6b4f2a";
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(242,239,230,.35)";
-    for (let d = 0; d < 12; d++) {
-      const a = d * 0.52;
+    if (toonPlant) {
+      this.tekenSteel(b.x, b.y, 3);
+      this.tekenBlad(1);
+      ctx.fillStyle = "#6b4f2a";
       ctx.beginPath();
-      ctx.arc(b.x + Math.cos(a) * 4, b.y + Math.sin(a) * 4, 0.8, 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = "rgba(242,239,230,.35)";
+      for (let d = 0; d < 12; d++) {
+        const a = d * 0.52;
+        ctx.beginPath();
+        ctx.arc(b.x + Math.cos(a) * 4, b.y + Math.sin(a) * 4, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     const volgorde = [...pluisjes].sort((a, q) => a.diep - q.diep);
     let vast = 0;
