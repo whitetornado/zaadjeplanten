@@ -71,11 +71,18 @@ export async function GET(req: NextRequest) {
     verzonden += 1;
   }
 
+  const details = (kandidaten ?? []).map((z) => ({
+    code: z.code,
+    geplant_op: z.geplant_op,
+    berekend_stadium: berekenStadium(z),
+  }));
+
   return NextResponse.json({
     ok: true,
     bekeken: kandidaten?.length ?? 0,
     bloeiend: bloeiend.length,
     verzonden,
     fouten,
+    details,
   });
 }
