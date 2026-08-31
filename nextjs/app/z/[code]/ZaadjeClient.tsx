@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AANTAL_PLUIS, BloemMotor, startMic } from "@/lib/bloem-canvas";
+import { useSchudDetectie, vraagBewegingToestemming } from "@/lib/schud";
 
 type Stadium =
   | "ongeplant" | "zaadje" | "kiem" | "knop" | "openen"
@@ -17,7 +18,7 @@ const TEKST: Record<Stadium, { titel: string; sub: string; cta: string; primair:
   verwelkt:    { titel: "Ze verwelkt", sub: "De bloem sluit zich en kleurt bruin — vanbinnen vormt zich het zaad.", cta: "Herinner me eraan", primair: false },
   zaadvorming: { titel: "Het zaad vormt zich", sub: "Een ronde, nog gesloten knop. Bijna zover.", cta: "Herinner me eraan", primair: false },
   zaadpluis:   { titel: "Ze is klaar om te blazen",
-                 sub: "Liefde, muziek en schoonheid zullen de wereld redden. Houd je telefoon dicht bij je mond en blaas zachtjes — of tik snel op de bloem.",
+                 sub: "Liefde, muziek en schoonheid zullen de wereld redden. Blaas zachtjes, tik op de bloem, of schud je telefoon.",
                  cta: "Blazen met je microfoon", primair: true },
   uitgeblazen: { titel: "Daar gaan je pluisjes", sub: "Elk pluisje is een zaadje voor iemand anders.", cta: "Geef je zaadje door", primair: true },
 };
@@ -52,6 +53,8 @@ export default function ZaadjeClient({
   const blaasKlaarBezig = useRef(false);
   const micStopRef = useRef<(() => void) | null>(null);
   const micActiefRef = useRef(false);
+  const sensorenGestartRef = useRef(false);
+  const [schudLuisteren, setSchudLuisteren] = useState(false);
   const geluidGespeeld = useRef(false);
   const hintRef = useRef("");
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -117,26 +120,40 @@ export default function ZaadjeClient({
     a.play().catch(() => {});
   }
 
-  function blaas(kracht: number) {
+  const blaas = useCallback((kracht: number) => {
     if (stadiumRef.current !== "zaadpluis") return;
     speelBlaasGeluid();
     motorRef.current?.blaas(kracht);
-  }
+  }, []);
 
-  async function zetMicAan() {
-    if (micActiefRef.current) return;
+  useSchudDetectie(schudLuisteren && stadium === "zaadpluis", blaas);
+
+  async function zetSensorenAan() {
+    if (sensorenGestartRef.current) return;
+    sensorenGestartRef.current = true;
+
+    const beweging = vraagBewegingToestemming();
+
     try {
-      micActiefRef.current = true;
-      const stop = await startMic(
-        () => stadiumRef.current === "zaadpluis",
-        (k) => blaas(k),
-        setHint,
-        false
-      );
-      micStopRef.current = stop;
+      if (!micActiefRef.current) {
+        micActiefRef.current = true;
+        const stop = await startMic(
+          () => stadiumRef.current === "zaadpluis",
+          (k) => blaas(k),
+          setHint,
+          false
+        );
+        micStopRef.current = stop;
+      }
     } catch {
       micActiefRef.current = false;
-      setHint("Geen microfoon? Tik dan snel op de bloem.");
+      setHint("Geen microfoon? Tik op de bloem of schud je telefoon.");
+    }
+
+    const bewegingOk = await beweging;
+    setSchudLuisteren(bewegingOk);
+    if (micActiefRef.current || bewegingOk) {
+      setHint("Blaas, tik, of schud je telefoon");
     }
   }
 
@@ -211,7 +228,7 @@ export default function ZaadjeClient({
 
   function onCta() {
     if (stadium === "ongeplant") plant();
-    else if (stadium === "zaadpluis") { if (!micActiefRef.current) zetMicAan(); }
+    else if (stadium === "zaadpluis") { if (!sensorenGestartRef.current) zetSensorenAan(); }
     else if (stadium === "uitgeblazen") setPaneelOpen(true);
     else setKiezerOpen(true);
   }

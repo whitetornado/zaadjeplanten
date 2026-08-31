@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { BloemMotor, startMic } from "@/lib/bloem-canvas";
+import { useSchudDetectie, vraagBewegingToestemming } from "@/lib/schud";
 
 declare global {
   interface Window {
@@ -97,6 +98,7 @@ export default function PodiumPagina() {
   const [hint, setHint] = useState("");
   const [bezig, setBezig] = useState(false);
   const [qrScriptKlaar, setQrScriptKlaar] = useState(false);
+  const [schudLuisteren, setSchudLuisteren] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -106,6 +108,7 @@ export default function PodiumPagina() {
   const gestartRef = useRef(false);
   const micActiefRef = useRef(false);
   const micStopRef = useRef<(() => void) | null>(null);
+  const sensorenGestartRef = useRef(false);
   const geluidGespeeld = useRef(false);
 
   klaarRef.current = klaar;
@@ -127,20 +130,34 @@ export default function PodiumPagina() {
     motorRef.current?.blaas(kracht);
   }, [speelBlaasGeluid]);
 
-  async function zetMicAan() {
-    if (micActiefRef.current) return;
+  useSchudDetectie(schudLuisteren && gestart && !klaar, blaas);
+
+  async function zetSensorenAan() {
+    if (sensorenGestartRef.current) return;
+    sensorenGestartRef.current = true;
+
+    const beweging = vraagBewegingToestemming();
+
     try {
-      micActiefRef.current = true;
-      const stop = await startMic(
-        () => gestartRef.current && !klaarRef.current,
-        (k) => blaas(k),
-        setHint,
-        true
-      );
-      micStopRef.current = stop;
+      if (!micActiefRef.current) {
+        micActiefRef.current = true;
+        const stop = await startMic(
+          () => gestartRef.current && !klaarRef.current,
+          (k) => blaas(k),
+          setHint,
+          true
+        );
+        micStopRef.current = stop;
+      }
     } catch {
       micActiefRef.current = false;
-      setHint("Geen microfoon? Tik dan snel op de bloem.");
+      setHint("Geen microfoon? Tik op de bloem of schud je telefoon.");
+    }
+
+    const bewegingOk = await beweging;
+    setSchudLuisteren(bewegingOk);
+    if (micActiefRef.current || bewegingOk) {
+      setHint("Blaas, tik, of schud je telefoon");
     }
   }
 
@@ -252,7 +269,7 @@ export default function PodiumPagina() {
             <p className="sub">
               {klaar
                 ? "Liefde, muziek en schoonheid zullen de wereld redden. Scan met je camera — sta je met meer mensen, dan krijgt ieder een eigen zaadje."
-                : "Blaas de pluisjes weg — daaronder ligt jouw zaadje verstopt."}
+                : "Blaas, tik of schud — daaronder ligt jouw zaadje verstopt."}
             </p>
           </header>
 
@@ -278,7 +295,7 @@ export default function PodiumPagina() {
               className={klaar ? "" : "primair"}
               onClick={() => {
                 if (klaar) resetVoorVolgende();
-                else if (!micActiefRef.current) zetMicAan();
+                else if (!sensorenGestartRef.current) zetSensorenAan();
               }}
               disabled={bezig}
             >
