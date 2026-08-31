@@ -270,26 +270,7 @@ export default function ZaadjeClient({
   }
 
   function kiesAgenda() {
-    const start = new Date(Date.now() + 3 * 24 * 3600 * 1000);
-    const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-    const url = `${location.origin}/z/${code}`;
-    const ics = [
-      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//zaadjeplanten//NL",
-      "BEGIN:VEVENT", "UID:" + code + "@zaadjeplanten.nl",
-      "DTSTAMP:" + stamp(new Date()),
-      "DTSTART:" + stamp(start),
-      "DTEND:" + stamp(new Date(start.getTime() + 30 * 60 * 1000)),
-      "SUMMARY:🌸 Je bloem bloeit — ga kijken",
-      "DESCRIPTION:Open je bloem: " + url,
-      "URL:" + url,
-      "END:VEVENT", "END:VCALENDAR",
-    ].join("\r\n");
-    const a = document.createElement("a");
-    a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
-    a.download = "je-bloem-bloeit.ics";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    window.location.href = `/api/agenda/${encodeURIComponent(code)}`;
     kies("agenda", "Staat in je agenda");
   }
 

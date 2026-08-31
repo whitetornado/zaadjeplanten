@@ -33,6 +33,7 @@ export interface Zaadje {
   geblazen_op: string | null;
   email: string | null;
   gewonnen_op?: string | null;
+  bloei_mail_verzonden_op?: string | null;
 }
 
 export type TuinLijn = {
@@ -51,6 +52,16 @@ export type TuinPrijs = {
   geplant_op: string | null;
   geblazen_op: string | null;
   gewonnen_op: string | null;
+};
+
+type PrijsRij = {
+  id: string;
+  email: string | null;
+  generatie: number;
+  geplant_op: string | null;
+  geblazen_op: string | null;
+  gewonnen_op?: string | null;
+  lijnen: { naam: string } | { naam: string }[] | null;
 };
 
 export type TuinOverzicht = {
@@ -127,7 +138,9 @@ export async function haalTuinOverzicht(): Promise<TuinOverzicht> {
     .not("email", "is", null)
     .order("generatie", { ascending: false });
 
-  const prijzen: TuinPrijs[] = (prijsRijen ?? [])
+  const prijsRijenGetypeerd = (prijsRijen ?? []) as unknown as PrijsRij[];
+
+  const prijzen: TuinPrijs[] = prijsRijenGetypeerd
     .filter((z) => typeof z.email === "string" && z.email.trim())
     .map((z) => ({
       id: z.id,
@@ -136,7 +149,7 @@ export async function haalTuinOverzicht(): Promise<TuinOverzicht> {
       lijnNaam: lijnNaamVanJoin(z.lijnen),
       geplant_op: z.geplant_op,
       geblazen_op: z.geblazen_op,
-      gewonnen_op: "gewonnen_op" in z ? (z.gewonnen_op as string | null) : null,
+      gewonnen_op: z.gewonnen_op ?? null,
     }));
 
   return {
