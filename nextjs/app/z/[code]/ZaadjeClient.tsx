@@ -42,6 +42,25 @@ function restTekst(uren: number | null, stadium: Stadium): string | null {
   return `nog ongeveer ${uren} uur tot de volgende fase`;
 }
 
+function vapidNaarBytes(base64: string) {
+  const pad = "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob(base64.replace(/-/g, "+").replace(/_/g, "/") + pad);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+function iosToestel() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function inBeginscherm() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
+  );
+}
+
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default function ZaadjeClient({
@@ -65,6 +84,7 @@ export default function ZaadjeClient({
   const [hint, setHint] = useState("");
   const [toast, setToast] = useState("");
   const [toastAan, setToastAan] = useState(false);
+  const [pushStatus, setPushStatus] = useState<"ok" | "ios" | "nee">("ok");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -87,6 +107,18 @@ export default function ZaadjeClient({
   const blaasKlaarRef = useRef<() => void>(() => {});
 
   stadiumRef.current = stadium;
+
+  useEffect(() => {
+    const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const apis =
+      "Notification" in window &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      Boolean(vapid);
+    if (iosToestel() && !inBeginscherm()) setPushStatus("ios");
+    else if (!apis) setPushStatus("nee");
+    else setPushStatus("ok");
+  }, []);
 
   const GROEI_VOLUME = 0.32;
   const GROEI_PAUZE_MS = 3500;
@@ -344,14 +376,53 @@ export default function ZaadjeClient({
   }
 
   async function kiesPush() {
-    if ("Notification" in window) {
-      const perm = await Notification.requestPermission();
-      if (perm === "granted") {
-        kies("push", "Seintje staat aan");
+    if (pushStatus === "ios") {
+      toastMelding("Voeg deze pagina eerst toe aan je beginscherm");
+      return;
+    }
+    if (pushStatus !== "ok") {
+      toastMelding("Meldingen werken hier niet — kies mail of agenda");
+      return;
+    }
+
+    const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapid || !("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      toastMelding("Meldingen werken hier niet — kies mail of agenda");
+      return;
+    }
+
+    try {
+      const toestemming = await Notification.requestPermission();
+      if (toestemming !== "granted") {
+        toastMelding("Melding niet gelukt — kies gerust mail of agenda");
         return;
       }
+
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      if (!reg.pushManager) {
+        toastMelding("Voeg deze pagina eerst toe aan je beginscherm");
+        return;
+      }
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidNaarBytes(vapid),
+      });
+
+      const res = await fetch("/api/plant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, pushAbonnement: sub.toJSON() }),
+      });
+      if (!res.ok) {
+        toastMelding("Melding niet gelukt — kies gerust mail of agenda");
+        return;
+      }
+      kies("push", "Seintje staat aan");
+    } catch {
+      toastMelding("Melding niet gelukt — kies gerust mail of agenda");
     }
-    toastMelding("Melding niet gelukt — kies gerust mail of agenda");
   }
 
   async function kiesMail() {
@@ -497,7 +568,13 @@ export default function ZaadjeClient({
           <div className="ikoon">✳</div>
           <div>
             <div className="t">Stuur me een seintje</div>
-            <div className="s">Een melding op je telefoon zodra ze bloeit</div>
+            <div className="s">
+              {pushStatus === "ios"
+                ? "Op iPhone: voeg deze pagina eerst toe aan je beginscherm, en open hem vanaf daar."
+                : pushStatus === "nee"
+                  ? "Meldingen worden hier niet ondersteund — kies mail of agenda"
+                  : "Een melding op je telefoon zodra ze bloeit"}
+            </div>
           </div>
         </div>
         <div

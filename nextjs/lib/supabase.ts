@@ -104,8 +104,10 @@ export interface Zaadje {
   geplant_op: string | null;
   geblazen_op: string | null;
   email: string | null;
+  push_abonnement?: unknown;
   gewonnen_op?: string | null;
   bloei_mail_verzonden_op?: string | null;
+  zaadpluis_mail_verzonden_op?: string | null;
 }
 
 export type TuinLijn = {

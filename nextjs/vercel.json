@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/bloei-mails", "schedule": "0 9 * * *" }
+    { "path": "/api/cron/bloei-mails", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/zaadpluis-mails", "schedule": "0 10 * * *" }
   ]
 }

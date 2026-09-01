@@ -3,6 +3,11 @@ import "./globals.css";
 export const metadata = {
   title: "zaadjeplanten.nl",
   description: "Een digitale blaasbloem — met liefde gegeven door Oleg Morozov",
+  appleWebApp: {
+    capable: true,
+    title: "zaadjeplanten",
+    statusBarStyle: "black-translucent" as const,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
