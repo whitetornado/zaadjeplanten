@@ -190,6 +190,13 @@ button.primair:active{background:var(--bloom)}
   min-height:100dvh; display:flex; flex-direction:column;
   align-items:center; justify-content:center; padding:24px; gap:16px; text-align:center;
 }
+.podium-start h1{min-height:0}
+.podium-start .sub{min-height:0}
+.podium-start form{
+  display:flex; flex-direction:column; align-items:stretch; gap:12px;
+  width:100%; max-width:320px;
+}
+.podium-start form button{width:100%; max-width:none}
 .podium-start input{
   font:inherit; font-size:14px; color:var(--ink); width:100%; max-width:320px;
   background:rgba(244,242,234,.07);
@@ -198,6 +205,8 @@ button.primair:active{background:var(--bloom)}
 }
 .podium-start input::placeholder{color:var(--ink-faint)}
 .podium-start input:focus{border-color:var(--bloom)}
+.podium-start input.podium-eigen{font-size:13px; padding:10px 16px; max-width:260px}
+.podium-start .stille-knop{margin-top:0}
 
 /* ---------- tuin (intern overzicht) ---------- */
 body:has(.tuin-pagina){
