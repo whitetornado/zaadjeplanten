@@ -49,6 +49,8 @@ export default function ZaadjeClient({
   const audioRef = useRef<HTMLAudioElement>(null);
   const groeiAudioRef = useRef<HTMLAudioElement>(null);
   const groeiFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const groeiPauzeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const magGroeiSpelenRef = useRef(false);
   const [gedempt, setGedempt] = useState(false);
   const motorRef = useRef<BloemMotor | null>(null);
   const stadiumRef = useRef(stadium);
@@ -66,13 +68,31 @@ export default function ZaadjeClient({
   stadiumRef.current = stadium;
 
   const GROEI_VOLUME = 0.32;
+  const GROEI_PAUZE_MS = 3500;
   const kijktNaarBloem = stadium === "openen" || stadium === "bloem";
+  magGroeiSpelenRef.current = kijktNaarBloem && !gedempt;
 
   function wisGroeiFade() {
     if (groeiFadeRef.current) {
       clearInterval(groeiFadeRef.current);
       groeiFadeRef.current = null;
     }
+  }
+
+  function wisGroeiPauze() {
+    if (groeiPauzeRef.current) {
+      clearTimeout(groeiPauzeRef.current);
+      groeiPauzeRef.current = null;
+    }
+  }
+
+  function stopGroeiGeluid() {
+    wisGroeiFade();
+    wisGroeiPauze();
+    const audio = groeiAudioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
   }
 
   function fadeInGroei(audio: HTMLAudioElement) {
@@ -85,6 +105,11 @@ export default function ZaadjeClient({
       audio.volume = Math.min(GROEI_VOLUME, (n / stappen) * GROEI_VOLUME);
       if (n >= stappen) wisGroeiFade();
     }, 50);
+  }
+
+  function speelGroeiGeluid(audio: HTMLAudioElement) {
+    audio.currentTime = 0;
+    audio.play().then(() => fadeInGroei(audio)).catch(() => {});
   }
 
   const toastMelding = useCallback((txt: string) => {
@@ -186,18 +211,34 @@ export default function ZaadjeClient({
     return () => {
       micStopRef.current?.();
       wisGroeiFade();
+      wisGroeiPauze();
     };
   }, []);
 
   useEffect(() => {
     const audio = groeiAudioRef.current;
     if (!audio || !kijktNaarBloem || gedempt) {
-      wisGroeiFade();
-      audio?.pause();
+      stopGroeiGeluid();
       return;
     }
-    if (audio.ended || !audio.paused) return;
-    audio.play().then(() => fadeInGroei(audio)).catch(() => {});
+
+    function opEinde() {
+      wisGroeiPauze();
+      groeiPauzeRef.current = setTimeout(() => {
+        groeiPauzeRef.current = null;
+        if (!magGroeiSpelenRef.current) return;
+        const a = groeiAudioRef.current;
+        if (a) speelGroeiGeluid(a);
+      }, GROEI_PAUZE_MS);
+    }
+
+    audio.addEventListener("ended", opEinde);
+    if (audio.paused || audio.ended) speelGroeiGeluid(audio);
+
+    return () => {
+      audio.removeEventListener("ended", opEinde);
+      stopGroeiGeluid();
+    };
   }, [kijktNaarBloem, gedempt]);
 
   useEffect(() => {
