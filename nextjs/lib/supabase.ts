@@ -266,6 +266,25 @@ export function berekenStadium(z: Pick<Zaadje, "geplant_op" | "geblazen_op">): S
   return "verwelkt"; // na 7 dagen: niet doorgeblazen, urgentie-mechaniek
 }
 
+/** Einde van elke groeifase in uren na planten. Zaadpluis begint bij 120. */
+const FASE_UREN = [8, 24, 40, 56, 80, 96, 120, 168] as const;
+
+/** Hele uren tot de volgende fase, of null in zaadpluis / ongeplant / uitgeblazen. */
+export function urenTotVolgendeFase(z: Pick<Zaadje, "geplant_op" | "geblazen_op">): number | null {
+  if (z.geblazen_op || !z.geplant_op) return null;
+
+  const uurGeleden = (Date.now() - new Date(z.geplant_op).getTime()) / 3_600_000;
+  const factor = process.env.TEMPO === "snel" ? 1 / 60 : 1;
+  const u = uurGeleden / factor;
+
+  // Laatste fase (zaadpluis, of daarna) telt af op de gebruiker, niet op de klok.
+  if (u >= 120) return null;
+
+  const volgende = FASE_UREN.find((drempel) => u < drempel);
+  if (volgende == null) return null;
+  return Math.max(0, Math.round(volgende - u));
+}
+
 export function genereerCode(lengte = 8) {
   const alfabet = "abcdefghijkmnpqrstuvwxyz23456789"; // zonder verwarrende tekens (0/o, 1/l)
   let code = "";

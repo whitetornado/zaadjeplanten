@@ -28,12 +28,33 @@ const VOLGORDE: Stadium[] = [
   "bloem", "verwelkt", "zaadvorming", "zaadpluis", "uitgeblazen",
 ];
 
+const FASES: Stadium[] = [
+  "zaadje", "kiem", "knop", "openen",
+  "bloem", "verwelkt", "zaadvorming", "zaadpluis",
+];
+
+function restTekst(uren: number | null, stadium: Stadium): string | null {
+  if (uren == null || stadium === "zaadpluis" || stadium === "ongeplant" || stadium === "uitgeblazen") {
+    return null;
+  }
+  if (uren <= 0) return "nog minder dan een uur tot de volgende fase";
+  if (uren === 1) return "nog ongeveer 1 uur tot de volgende fase";
+  return `nog ongeveer ${uren} uur tot de volgende fase`;
+}
+
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default function ZaadjeClient({
-  code, generatie, lijnNaam, stadiumBijLaden,
-}: { code: string; generatie: number; lijnNaam: string; stadiumBijLaden: Stadium }) {
+  code, generatie, lijnNaam, stadiumBijLaden, urenTotVolgendeFase,
+}: {
+  code: string;
+  generatie: number;
+  lijnNaam: string;
+  stadiumBijLaden: Stadium;
+  urenTotVolgendeFase: number | null;
+}) {
   const [stadium, setStadium] = useState<Stadium>(stadiumBijLaden);
+  const [urenRest, setUrenRest] = useState(urenTotVolgendeFase);
   const [deelLink, setDeelLink] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
   const [kiezerOpen, setKiezerOpen] = useState(false);
@@ -134,6 +155,7 @@ export default function ZaadjeClient({
     setBezig(false);
     if (res.ok) {
       setStadium("zaadje");
+      setUrenRest(8);
       setTimeout(() => setKiezerOpen(true), 700);
     }
   }
@@ -379,6 +401,9 @@ export default function ZaadjeClient({
   }
 
   const t = TEKST[stadium];
+  const faseIndex = FASES.indexOf(stadium);
+  const toonFase = faseIndex >= 0;
+  const faseRest = restTekst(urenRest, stadium);
 
   return (
     <main className="bloem-app">
@@ -423,6 +448,23 @@ export default function ZaadjeClient({
         </div>
         <h1>{t.titel}</h1>
         <p className="sub">{t.sub}</p>
+        {toonFase && (
+          <div className="fase-voortgang">
+            <div
+              className="fase-punten"
+              role="img"
+              aria-label={`Stadium ${faseIndex + 1} van 8: ${stadium}`}
+            >
+              {FASES.map((fase) => (
+                <span
+                  key={fase}
+                  className={"fase-punt" + (fase === stadium ? " nu" : "")}
+                />
+              ))}
+            </div>
+            {faseRest && <p className="fase-rest">{faseRest}</p>}
+          </div>
+        )}
       </header>
 
       <div id="stage-wrap">

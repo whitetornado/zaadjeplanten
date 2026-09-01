@@ -24,6 +24,35 @@ h1{
   margin-top:6px; line-height:1.15; min-height:2.2em;
 }
 .sub{font-size:14px; color:var(--ink-soft); max-width:300px; margin:8px auto 0; line-height:1.55; min-height:3.1em}
+.fase-voortgang{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:7px;
+}
+.fase-punten{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:6px;
+}
+.fase-punt{
+  width:5px; height:5px; border-radius:50%;
+  background:rgba(244,242,234,.2);
+}
+.fase-punt.nu{
+  width:6px; height:6px;
+  background:rgba(244,242,234,.72);
+}
+.fase-rest{
+  font-size:11.5px;
+  color:var(--ink-faint);
+  letter-spacing:.01em;
+  line-height:1.35;
+  max-width:280px;
+}
 #stage-wrap{flex:1; position:relative; min-height:0; overflow:visible}
 canvas#c{position:absolute; inset:0; width:100%; height:100%; display:block}
 footer{padding:0 24px calc(18px + env(safe-area-inset-bottom)); text-align:center}

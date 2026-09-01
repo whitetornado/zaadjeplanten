@@ -28,6 +28,7 @@ export class BloemMotor {
   DPR = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
   pluisjes: Pluisje[] = [];
   perf = 0;
+  windOffset = Math.random() * Math.PI * 2;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -94,6 +95,21 @@ export class BloemMotor {
     }
   }
 
+  /** Lichte, trage zwaai van steel + bloemkop om het voetpunt van de steel. */
+  metWind(teken: () => void) {
+    const { ctx, W, H, perf } = this;
+    const gy = H * 0.86;
+    const graden =
+      Math.sin(perf * 0.0004 + this.windOffset) * 2 +
+      Math.sin(perf * 0.00017 + this.windOffset * 1.3) * 0.5;
+    ctx.save();
+    ctx.translate(W / 2, gy);
+    ctx.rotate((graden * Math.PI) / 180);
+    ctx.translate(-W / 2, -gy);
+    teken();
+    ctx.restore();
+  }
+
   tekenSteel(topX: number, topY: number, dikte: number) {
     const { ctx, W, H } = this;
     const gy = H * 0.86;
@@ -126,151 +142,161 @@ export class BloemMotor {
   }
 
   tekenKnop(t: number) {
-    const { ctx, W } = this;
-    const b = this.bloemBasis(),
-      topY = this.H * 0.86 - (this.H * 0.86 - b.y) * t;
-    this.tekenSteel(W / 2, topY, 3);
-    this.tekenBlad(t);
-    const h = 10 + t * 9,
-      w = 5 + t * 3;
-    ctx.fillStyle = kleur("--knop-groen");
-    ctx.beginPath();
-    ctx.moveTo(W / 2, topY - h);
-    ctx.quadraticCurveTo(W / 2 + w, topY - h * 0.3, W / 2 + w * 0.75, topY + h * 0.3);
-    ctx.quadraticCurveTo(W / 2, topY + h * 0.55, W / 2 - w * 0.75, topY + h * 0.3);
-    ctx.quadraticCurveTo(W / 2 - w, topY - h * 0.3, W / 2, topY - h);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(16,31,18,.35)";
-    ctx.lineWidth = 0.7;
-    for (let i = -2; i <= 2; i++) {
+    this.metWind(() => {
+      const { ctx, W } = this;
+      const b = this.bloemBasis(),
+        topY = this.H * 0.86 - (this.H * 0.86 - b.y) * t;
+      this.tekenSteel(W / 2, topY, 3);
+      this.tekenBlad(t);
+      const h = 10 + t * 9,
+        w = 5 + t * 3;
+      ctx.fillStyle = kleur("--knop-groen");
       ctx.beginPath();
-      ctx.moveTo(W / 2 + i * w * 0.32, topY - h * 0.75);
-      ctx.lineTo(W / 2 + i * w * 0.42, topY + h * 0.35);
-      ctx.stroke();
-    }
+      ctx.moveTo(W / 2, topY - h);
+      ctx.quadraticCurveTo(W / 2 + w, topY - h * 0.3, W / 2 + w * 0.75, topY + h * 0.3);
+      ctx.quadraticCurveTo(W / 2, topY + h * 0.55, W / 2 - w * 0.75, topY + h * 0.3);
+      ctx.quadraticCurveTo(W / 2 - w, topY - h * 0.3, W / 2, topY - h);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(16,31,18,.35)";
+      ctx.lineWidth = 0.7;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(W / 2 + i * w * 0.32, topY - h * 0.75);
+        ctx.lineTo(W / 2 + i * w * 0.42, topY + h * 0.35);
+        ctx.stroke();
+      }
+    });
   }
 
   tekenOpenen(t: number) {
-    const { ctx } = this;
-    const b = this.bloemBasis();
-    this.tekenSteel(b.x, b.y, 3);
-    this.tekenBlad(1);
-    const n = 13,
-      len = b.r * 0.3 * t;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      ctx.fillStyle = kleur("--geel");
-      ctx.beginPath();
-      ctx.ellipse(
-        b.x + Math.cos(a) * len * 0.6,
-        b.y + Math.sin(a) * len * 0.6,
-        len * 0.5 + 2,
-        2.4,
-        a,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
-    }
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + 0.3;
-      ctx.fillStyle = kleur("--knop-groen");
-      ctx.beginPath();
-      ctx.ellipse(b.x + Math.cos(a) * 10, b.y + Math.sin(a) * 10 + 6, 6, 2.6, a, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = kleur("--hart-geel");
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 5 * t, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  tekenBloem(t: number) {
-    const { ctx } = this;
-    const b = this.bloemBasis();
-    this.tekenSteel(b.x, b.y, 3.5);
-    this.tekenBlad(1);
-    const n = 26;
-    for (let ring = 0; ring < 2; ring++) {
+    this.metWind(() => {
+      const { ctx } = this;
+      const b = this.bloemBasis();
+      this.tekenSteel(b.x, b.y, 3);
+      this.tekenBlad(1);
+      const n = 13,
+        len = b.r * 0.3 * t;
       for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2 + ring * 0.12;
-        const len = (b.r * 0.62 - ring * 8) * t;
-        ctx.fillStyle = ring ? kleur("--geel-diep") : kleur("--geel");
+        const a = (i / n) * Math.PI * 2;
+        ctx.fillStyle = kleur("--geel");
         ctx.beginPath();
         ctx.ellipse(
-          b.x + Math.cos(a) * len * 0.58,
-          b.y + Math.sin(a) * len * 0.58,
-          len * 0.46,
-          2.6,
+          b.x + Math.cos(a) * len * 0.6,
+          b.y + Math.sin(a) * len * 0.6,
+          len * 0.5 + 2,
+          2.4,
           a,
           0,
           Math.PI * 2
         );
         ctx.fill();
       }
-    }
-    ctx.fillStyle = kleur("--hart-geel");
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 8 * t, 0, Math.PI * 2);
-    ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + 0.3;
+        ctx.fillStyle = kleur("--knop-groen");
+        ctx.beginPath();
+        ctx.ellipse(b.x + Math.cos(a) * 10, b.y + Math.sin(a) * 10 + 6, 6, 2.6, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = kleur("--hart-geel");
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 5 * t, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  tekenBloem(t: number) {
+    this.metWind(() => {
+      const { ctx } = this;
+      const b = this.bloemBasis();
+      this.tekenSteel(b.x, b.y, 3.5);
+      this.tekenBlad(1);
+      const n = 26;
+      for (let ring = 0; ring < 2; ring++) {
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * Math.PI * 2 + ring * 0.12;
+          const len = (b.r * 0.62 - ring * 8) * t;
+          ctx.fillStyle = ring ? kleur("--geel-diep") : kleur("--geel");
+          ctx.beginPath();
+          ctx.ellipse(
+            b.x + Math.cos(a) * len * 0.58,
+            b.y + Math.sin(a) * len * 0.58,
+            len * 0.46,
+            2.6,
+            a,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      }
+      ctx.fillStyle = kleur("--hart-geel");
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 8 * t, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 
   tekenVerwelken(t: number) {
-    const { ctx } = this;
-    const b = this.bloemBasis();
-    this.tekenSteel(b.x, b.y, 3);
-    this.tekenBlad(1);
-    const n = 10,
-      hang = 4 + t * 10;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      ctx.strokeStyle = kleur("--verwelk-diep");
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
+    this.metWind(() => {
+      const { ctx } = this;
+      const b = this.bloemBasis();
+      this.tekenSteel(b.x, b.y, 3);
+      this.tekenBlad(1);
+      const n = 10,
+        hang = 4 + t * 10;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        ctx.strokeStyle = kleur("--verwelk-diep");
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(b.x + Math.cos(a) * 5, b.y + Math.sin(a) * 5);
+        ctx.quadraticCurveTo(
+          b.x + Math.cos(a) * 9,
+          b.y + Math.sin(a) * 4 + hang * 0.5,
+          b.x + Math.cos(a) * 6,
+          b.y + hang
+        );
+        ctx.stroke();
+      }
+      ctx.fillStyle = kleur("--verwelk");
       ctx.beginPath();
-      ctx.moveTo(b.x + Math.cos(a) * 5, b.y + Math.sin(a) * 5);
-      ctx.quadraticCurveTo(
-        b.x + Math.cos(a) * 9,
-        b.y + Math.sin(a) * 4 + hang * 0.5,
-        b.x + Math.cos(a) * 6,
-        b.y + hang
-      );
-      ctx.stroke();
-    }
-    ctx.fillStyle = kleur("--verwelk");
-    ctx.beginPath();
-    ctx.ellipse(b.x, b.y - 2, 9 - t * 1.5, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.ellipse(b.x, b.y - 2, 9 - t * 1.5, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 
   tekenZaadvorming(t: number) {
-    const { ctx } = this;
-    const b = this.bloemBasis();
-    this.tekenSteel(b.x, b.y, 3);
-    this.tekenBlad(1);
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2 + 0.4;
-      ctx.strokeStyle = kleur("--verwelk-diep");
-      ctx.lineWidth = 1.4;
+    this.metWind(() => {
+      const { ctx } = this;
+      const b = this.bloemBasis();
+      this.tekenSteel(b.x, b.y, 3);
+      this.tekenBlad(1);
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + 0.4;
+        ctx.strokeStyle = kleur("--verwelk-diep");
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(b.x + Math.cos(a) * 4, b.y + 4);
+        ctx.lineTo(b.x + Math.cos(a) * 7, b.y + 10);
+        ctx.stroke();
+      }
+      ctx.fillStyle = kleur("--pluis");
+      ctx.globalAlpha = 0.7 + t * 0.3;
       ctx.beginPath();
-      ctx.moveTo(b.x + Math.cos(a) * 4, b.y + 4);
-      ctx.lineTo(b.x + Math.cos(a) * 7, b.y + 10);
-      ctx.stroke();
-    }
-    ctx.fillStyle = kleur("--pluis");
-    ctx.globalAlpha = 0.7 + t * 0.3;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 6 + t * 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(139,110,63,.35)";
-    for (let i = 0; i < 18; i++) {
-      const a = i * 2.399963,
-        r = (5 + t * 7) * Math.sqrt(i / 18);
-      ctx.beginPath();
-      ctx.arc(b.x + Math.cos(a) * r, b.y + Math.sin(a) * r, 0.9, 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, 6 + t * 8, 0, Math.PI * 2);
       ctx.fill();
-    }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(139,110,63,.35)";
+      for (let i = 0; i < 18; i++) {
+        const a = i * 2.399963,
+          r = (5 + t * 7) * Math.sqrt(i / 18);
+        ctx.beginPath();
+        ctx.arc(b.x + Math.cos(a) * r, b.y + Math.sin(a) * r, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
   }
 
   tekenKiem(t: number) {

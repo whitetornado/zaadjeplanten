@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { supabaseServer, berekenStadium } from "@/lib/supabase";
+import { supabaseServer, berekenStadium, urenTotVolgendeFase } from "@/lib/supabase";
 import ZaadjeClient from "./ZaadjeClient";
 
 export const dynamic = "force-dynamic"; // stadium hangt af van "nu", dus nooit cachen
@@ -34,6 +34,7 @@ export default async function ZaadjePagina({
       generatie={zaadje.generatie}
       lijnNaam={lijn?.naam ?? "onbekend optreden"}
       stadiumBijLaden={stadium}
+      urenTotVolgendeFase={urenTotVolgendeFase(zaadje)}
     />
   );
 }
