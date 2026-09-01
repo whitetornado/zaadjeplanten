@@ -47,6 +47,9 @@ export default function ZaadjeClient({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const groeiAudioRef = useRef<HTMLAudioElement>(null);
+  const groeiFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [gedempt, setGedempt] = useState(false);
   const motorRef = useRef<BloemMotor | null>(null);
   const stadiumRef = useRef(stadium);
   const groeiRef = useRef(0);
@@ -61,6 +64,28 @@ export default function ZaadjeClient({
   const blaasKlaarRef = useRef<() => void>(() => {});
 
   stadiumRef.current = stadium;
+
+  const GROEI_VOLUME = 0.32;
+  const kijktNaarBloem = stadium === "openen" || stadium === "bloem";
+
+  function wisGroeiFade() {
+    if (groeiFadeRef.current) {
+      clearInterval(groeiFadeRef.current);
+      groeiFadeRef.current = null;
+    }
+  }
+
+  function fadeInGroei(audio: HTMLAudioElement) {
+    wisGroeiFade();
+    audio.volume = 0;
+    const stappen = 20;
+    let n = 0;
+    groeiFadeRef.current = setInterval(() => {
+      n += 1;
+      audio.volume = Math.min(GROEI_VOLUME, (n / stappen) * GROEI_VOLUME);
+      if (n >= stappen) wisGroeiFade();
+    }, 50);
+  }
 
   const toastMelding = useCallback((txt: string) => {
     setToast(txt);
@@ -160,8 +185,20 @@ export default function ZaadjeClient({
   useEffect(() => {
     return () => {
       micStopRef.current?.();
+      wisGroeiFade();
     };
   }, []);
+
+  useEffect(() => {
+    const audio = groeiAudioRef.current;
+    if (!audio || !kijktNaarBloem || gedempt) {
+      wisGroeiFade();
+      audio?.pause();
+      return;
+    }
+    if (audio.ended || !audio.paused) return;
+    audio.play().then(() => fadeInGroei(audio)).catch(() => {});
+  }, [kijktNaarBloem, gedempt]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -304,6 +341,39 @@ export default function ZaadjeClient({
 
   return (
     <main className="bloem-app">
+      {kijktNaarBloem && (
+        <button
+          className="geluid-knop"
+          type="button"
+          aria-label={gedempt ? "Zet geluid aan" : "Zet geluid uit"}
+          aria-pressed={gedempt}
+          onClick={() => setGedempt((nu) => !nu)}
+        >
+          {gedempt ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 10v4h3l4 3V7L7 10H4zM16.2 9.2l4.6 5.6M20.8 9.2l-4.6 5.6"
+              />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 10v4h3l4 3V7L7 10H4zM15.2 8.8a4.2 4.2 0 0 1 0 6.4M17.6 6.6a7.2 7.2 0 0 1 0 10.8"
+              />
+            </svg>
+          )}
+        </button>
+      )}
       <header>
         <div className="lijn">
           {generatie === 1
@@ -406,6 +476,7 @@ export default function ZaadjeClient({
 
       <div id="toast" className={toastAan ? "zichtbaar" : ""}>{toast || "Gelukt"}</div>
       <audio ref={audioRef} preload="auto" src="/blaas.mp3" />
+      <audio ref={groeiAudioRef} preload="auto" src="/groei-geluid.mp3" playsInline />
     </main>
   );
 }
