@@ -281,3 +281,113 @@ body:has(.tuin-pagina){
   vertical-align:middle;
 }
 .tuin-gewonnen{color:var(--ink-soft); font-size:12px}
+
+/* ---------- publieke tuin (homepage) ---------- */
+body:has(.tuinveld){
+  overflow:auto; overflow-x:hidden; height:auto;
+  user-select:text; -webkit-user-select:text;
+  display:block;
+}
+.tuinveld{
+  position:relative;
+  min-height:100dvh;
+  max-width:720px;
+  margin:0 auto;
+  padding:calc(28px + env(safe-area-inset-top)) 22px calc(48px + env(safe-area-inset-bottom));
+  text-align:center;
+}
+.tuinveld h1{
+  min-height:0;
+  font-size:clamp(26px,6.4vw,40px);
+  margin-top:8px;
+}
+.tuinveld-kop{position:relative; z-index:1}
+.tuinveld-citaat{
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-size:clamp(16px,3.6vw,21px);
+  color:var(--pluis);
+  margin:14px auto 0;
+  max-width:26em;
+  line-height:1.4;
+}
+.tuinveld-lead{
+  font-size:15px;
+  color:var(--ink-soft);
+  line-height:1.6;
+  max-width:34em;
+  margin:16px auto 0;
+}
+.tuinveld-cta{
+  display:inline-block;
+  margin-top:20px;
+  padding:13px 26px;
+  border-radius:999px;
+  background:var(--bloom-deep);
+  border:1px solid var(--bloom-deep);
+  text-decoration:none;
+  font-size:15px;
+}
+.tuinveld-cta:active{background:var(--bloom)}
+.tuinveld-leeg{
+  position:relative; z-index:1;
+  font-family:'Fraunces',serif;
+  font-size:clamp(17px,3.8vw,22px);
+  color:var(--ink-soft);
+  line-height:1.45;
+  max-width:22em;
+  margin:48px auto 0;
+}
+.tuinveld-leven{position:relative; z-index:1; margin-top:36px}
+.tuinveld-totaal{
+  font-size:14px;
+  color:var(--ink-soft);
+  line-height:1.5;
+  max-width:28em;
+  margin:0 auto 28px;
+}
+.tuinveld-rij{margin:0 0 28px}
+.tuinveld-rij > p{
+  font-size:14px;
+  color:var(--ink-soft);
+  margin-top:8px;
+  line-height:1.45;
+}
+.tuinveld-cluster{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:flex-end;
+  gap:2px 4px;
+  min-height:72px;
+}
+.tuinveld-plant-wrap{display:block; width:42px; line-height:0}
+@media (min-width:520px){
+  .tuinveld-plant-wrap{width:52px}
+}
+.tuinveld-plant{width:100%; height:auto; display:block; overflow:visible}
+.tuinveld-meer{
+  align-self:center;
+  font-size:12px;
+  color:var(--ink-faint);
+  padding:0 6px 10px;
+  white-space:nowrap;
+}
+.tuinveld-achtergrond{
+  position:absolute; inset:0;
+  pointer-events:none; overflow:visible; z-index:0;
+}
+.tuinveld-sfeerplant{
+  position:absolute;
+}
+.tuinveld-sfeerplant svg{width:100%; height:auto; display:block; overflow:visible}
+.tuinveld-bloei-icoon{
+  width:min(118px, 36vw);
+  margin:0 auto 2px;
+}
+.tuinveld-bloei-icoon svg{width:100%; height:auto; display:block; overflow:visible}
+.tuinveld-gras{
+  position:absolute; left:0; right:0; bottom:0;
+  width:100%; height:56px;
+  opacity:.85;
+}

@@ -15,6 +15,73 @@ export function supabaseServer() {
   );
 }
 
+/** Alleen aggregaatcijfers voor de publieke homepage. Geen e-mail, code of lijnnaam. */
+export type PubliekeTuinCijfers = {
+  totaalZaadjes: number;
+  diepsteGeneratie: number;
+  geplant: number;
+  geplantZaadje: number;
+  geplantKiem: number;
+  geplantKnop: number;
+  geplantOpenen: number;
+  bloeiend: number;
+  klaar: number;
+  verspreid: number;
+};
+
+export async function haalPubliekeTuinCijfers(): Promise<PubliekeTuinCijfers> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { persistSession: false },
+      global: {
+        fetch: (input, init) =>
+          fetch(input, { ...init, next: { revalidate: 60 } } as RequestInit),
+      },
+    }
+  );
+
+  const pagina = 1000;
+  const rijen: Pick<Zaadje, "geplant_op" | "geblazen_op" | "generatie">[] = [];
+  for (let van = 0; ; van += pagina) {
+    const { data, error } = await supabase
+      .from("zaadjes")
+      .select("geplant_op, geblazen_op, generatie")
+      .range(van, van + pagina - 1);
+    if (error || !data?.length) break;
+    rijen.push(...data);
+    if (data.length < pagina) break;
+  }
+
+  const leeg: PubliekeTuinCijfers = {
+    totaalZaadjes: 0,
+    diepsteGeneratie: 0,
+    geplant: 0,
+    geplantZaadje: 0,
+    geplantKiem: 0,
+    geplantKnop: 0,
+    geplantOpenen: 0,
+    bloeiend: 0,
+    klaar: 0,
+    verspreid: 0,
+  };
+
+  return rijen.reduce((acc, z) => {
+    acc.totaalZaadjes += 1;
+    acc.diepsteGeneratie = Math.max(acc.diepsteGeneratie, z.generatie ?? 0);
+    const stadium = berekenStadium(z);
+    if (stadium === "zaadje") { acc.geplantZaadje += 1; acc.geplant += 1; }
+    else if (stadium === "kiem") { acc.geplantKiem += 1; acc.geplant += 1; }
+    else if (stadium === "knop") { acc.geplantKnop += 1; acc.geplant += 1; }
+    else if (stadium === "openen") { acc.geplantOpenen += 1; acc.geplant += 1; }
+    else if (stadium === "bloem") acc.bloeiend += 1;
+    else if (stadium === "zaadpluis") acc.klaar += 1;
+    else if (stadium === "uitgeblazen") acc.verspreid += 1;
+    return acc;
+  }, leeg);
+}
+
 export type Stadium =
   | "ongeplant"
   | "zaadje"
