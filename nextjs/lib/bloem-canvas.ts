@@ -433,11 +433,20 @@ export async function startMic(
   let actief = true;
   function luister() {
     if (!actief) return;
+    // Podium: stream en AudioContext blijven open tussen rondes.
+    // Alleen het blazen zelf is gekoppeld aan blaasbaar — anders sterft
+    // de RAF-lus bij "Nieuwe bloem" en komt hij niet meer terug.
     if (!blaasbaar()) {
+      boven = 0;
+      if (podium) {
+        requestAnimationFrame(luister);
+        return;
+      }
       stream.getTracks().forEach((t) => t.stop());
       actief = false;
       return;
     }
+    if (ac.state === "suspended") ac.resume().catch(() => {});
     analyser.getFloatTimeDomainData(data);
     let som = 0;
     for (let i = 0; i < data.length; i++) som += data[i] * data[i];

@@ -198,7 +198,7 @@ export default function PodiumApp() {
     gestartRef.current = true;
     setKlaar(false);
     klaarRef.current = false;
-    setHint("");
+    setHint(sensorenGestartRef.current ? "Blaas, tik, of schud je telefoon" : "");
     geluidGespeeld.current = false;
     motorRef.current?.bouwPluisjes();
   }

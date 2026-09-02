@@ -35,9 +35,19 @@ export function useSchudDetectie(actief: boolean, onSchud: (kracht: number) => v
       laatsteMagnitude = magnitude;
 
       const nu = Date.now();
-      if (delta > 15 && nu - laatsteSchudTijd > 150) {
+      // Drempel 11 (was 15): een lichte schud is genoeg voor óns, zodat de
+      // gebruiker niet zo hard hoeft te schudden als iOS "Shake to Undo"
+      // (Herstel/ongedaan maken) verwacht.
+      //
+      // Beperking: Shake to Undo is een iOS-systeemgebaar. Vanuit een
+      // webpagina is het niet te onderdrukken (geen preventDefault, geen
+      // web-API; alleen native UIApplication.applicationSupportsShakeToEdit).
+      // Een restant van die melding kan dus blijven verschijnen.
+      if (delta > 11 && nu - laatsteSchudTijd > 120) {
         laatsteSchudTijd = nu;
-        onSchudRef.current(Math.min(1, delta / 30));
+        const focus = document.activeElement;
+        if (focus instanceof HTMLElement) focus.blur();
+        onSchudRef.current(Math.min(1, delta / 28));
       }
     }
 

@@ -1,0 +1,14 @@
+{
+  "name": "zaadjeplanten · podium",
+  "short_name": "Podium",
+  "description": "Podiummodus — blaasbloem voor een set van Oleg Morozov",
+  "start_url": "/podium",
+  "scope": "/podium",
+  "display": "standalone",
+  "background_color": "#101f12",
+  "theme_color": "#101f12",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

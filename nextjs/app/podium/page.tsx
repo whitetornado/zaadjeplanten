@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Podium — zaadjeplanten",
   robots: { index: false, follow: false },
+  manifest: "/podium-manifest.webmanifest",
 };
 
 export default function PodiumPagina({
