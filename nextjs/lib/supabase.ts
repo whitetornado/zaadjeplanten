@@ -208,7 +208,7 @@ export async function haalTuinOverzicht(): Promise<TuinOverzicht> {
   const { data: prijsRijen } = await supabase
     .from("zaadjes")
     .select(prijsVelden)
-    .gte("generatie", 10)
+    .gte("generatie", 3)
     .not("email", "is", null)
     .order("generatie", { ascending: false });
 

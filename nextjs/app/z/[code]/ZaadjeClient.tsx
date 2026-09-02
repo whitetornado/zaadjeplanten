@@ -597,6 +597,7 @@ export default function ZaadjeClient({
           <div>
             <div className="t">Mail me als ze bloeit</div>
             <div className="s">Ook handig om later je winkans te volgen</div>
+            <div className="s">Je maakt dan ook kans op een boeket of een huiskamerconcert van Oleg — gratis, zonder aankoop. We nemen contact op als je wint.</div>
           </div>
         </div>
         <div id="mail-rij" className={mailZichtbaar ? "zichtbaar" : ""}>

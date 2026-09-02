@@ -99,7 +99,7 @@ export default async function TuinPagina({
       </section>
 
       <section>
-        <h2>Prijzen — generatie 10 of hoger, met e-mail</h2>
+        <h2>Prijzen — generatie 3 of hoger, met e-mail</h2>
         {data.gewonnenKolomOntbreekt && (
           <>
             <p className="tuin-sql">
@@ -112,7 +112,7 @@ export default async function TuinPagina({
           </>
         )}
         {data.prijzen.length === 0 ? (
-          <p className="tuin-leeg">Nog niemand met generatie 10+ én een e-mailadres.</p>
+          <p className="tuin-leeg">Nog niemand met generatie 3+ én een e-mailadres.</p>
         ) : (
           <div className="tuin-tabel-wrap">
             <table className="tuin-tabel">
