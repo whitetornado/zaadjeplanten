@@ -14,7 +14,7 @@ export default async function ZaadjePagina({
 
   const { data: zaadje } = await supabase
     .from("zaadjes")
-    .select("code, generatie, geplant_op, geblazen_op, lijn_id")
+    .select("code, generatie, geplant_op, geblazen_op, lijn_id, email, push_abonnement")
     .eq("code", params.code)
     .single();
 
@@ -27,6 +27,9 @@ export default async function ZaadjePagina({
     .single();
 
   const stadium = berekenStadium(zaadje);
+  const herinneringIngesteld =
+    (typeof zaadje.email === "string" && zaadje.email.trim().length > 0) ||
+    Boolean(zaadje.push_abonnement);
 
   return (
     <ZaadjeClient
@@ -35,6 +38,7 @@ export default async function ZaadjePagina({
       lijnNaam={lijn?.naam ?? "onbekend optreden"}
       stadiumBijLaden={stadium}
       urenTotVolgendeFase={urenTotVolgendeFase(zaadje)}
+      herinneringIngesteld={herinneringIngesteld}
     />
   );
 }

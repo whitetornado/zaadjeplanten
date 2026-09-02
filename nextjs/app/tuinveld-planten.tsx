@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { BloeiendePaardenbloem, Roos, Tulp, type TulpTint } from "./tuinveld-illustraties";
 
 const MAX_TEKEN = 12;
@@ -227,20 +228,26 @@ export function groepVisuals(soort: Soort, aantal: number) {
   };
 }
 
-type AchtergrondPlek =
-  | { soort: "tulp"; tint: TulpTint; kant: "links" | "rechts"; inset: string; y: string }
-  | { soort: "roos"; kant: "links" | "rechts"; inset: string; y: string };
+type AchtergrondPlek = (
+  | { soort: "tulp"; tint: TulpTint }
+  | { soort: "roos" }
+) & {
+  kant: "links" | "rechts";
+  inset: string;
+  y: string;
+  mobiel?: { inset: string; bottom: string };
+};
 
 const ACHTERGROND: AchtergrondPlek[] = [
-  { soort: "tulp", tint: "rood", kant: "links", inset: "2%", y: "38%" },
+  { soort: "tulp", tint: "rood", kant: "links", inset: "2%", y: "38%", mobiel: { inset: "-14px", bottom: "22px" } },
   { soort: "roos", kant: "links", inset: "12%", y: "56%" },
-  { soort: "tulp", tint: "geel", kant: "links", inset: "4%", y: "72%" },
+  { soort: "tulp", tint: "geel", kant: "links", inset: "4%", y: "72%", mobiel: { inset: "28px", bottom: "2px" } },
   { soort: "tulp", tint: "roze", kant: "links", inset: "20%", y: "78%" },
-  { soort: "roos", kant: "rechts", inset: "6%", y: "50%" },
+  { soort: "roos", kant: "rechts", inset: "6%", y: "50%", mobiel: { inset: "-12px", bottom: "26px" } },
   { soort: "tulp", tint: "rood", kant: "rechts", inset: "8%", y: "34%" },
   { soort: "tulp", tint: "geel", kant: "rechts", inset: "2%", y: "58%" },
   { soort: "roos", kant: "rechts", inset: "4%", y: "74%" },
-  { soort: "tulp", tint: "roze", kant: "rechts", inset: "18%", y: "80%" },
+  { soort: "tulp", tint: "roze", kant: "rechts", inset: "18%", y: "80%", mobiel: { inset: "26px", bottom: "4px" } },
 ];
 
 function vast(i: number, salt: number) {
@@ -260,20 +267,26 @@ export function TuinveldAchtergrond() {
         const rot = tussen(i, 2, -8, 8);
         const opacity = tussen(i, 3, 0.72, 0.84);
         const langs = `max(0px, min(${b.inset}, calc(100% - ${breedte}px)))`;
+        const klasse = [
+          "tuinveld-sfeerplant",
+          b.kant === "rechts" ? "tuinveld-sfeerplant--rechts" : "tuinveld-sfeerplant--links",
+          b.mobiel ? "tuinveld-sfeerplant--mobiel" : "",
+        ].filter(Boolean).join(" ");
+        const stijl = {
+          "--sfeer-top": b.y,
+          "--sfeer-inset": langs,
+          "--sfeer-opacity": String(opacity),
+          "--sfeer-rot": `${rot}deg`,
+          "--sfeer-breedte": `${breedte}px`,
+          ...(b.mobiel
+            ? {
+                "--sfeer-mobiel-inset": b.mobiel.inset,
+                "--sfeer-mobiel-bottom": b.mobiel.bottom,
+              }
+            : {}),
+        } as CSSProperties;
         return (
-          <div
-            key={i}
-            className="tuinveld-sfeerplant"
-            style={{
-              top: b.y,
-              width: `${breedte}px`,
-              opacity,
-              transform: `rotate(${rot}deg)`,
-              ...(b.kant === "rechts"
-                ? { right: langs, left: "auto" }
-                : { left: langs, right: "auto" }),
-            }}
-          >
+          <div key={i} className={klasse} style={stijl}>
             {b.soort === "tulp" ? <Tulp tint={b.tint} /> : <Roos />}
           </div>
         );

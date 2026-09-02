@@ -53,6 +53,9 @@ h1{
   line-height:1.35;
   max-width:280px;
 }
+.herinnering-staat{
+  margin:0 auto;
+}
 #stage-wrap{flex:1; position:relative; min-height:0; overflow:visible}
 canvas#c{position:absolute; inset:0; width:100%; height:100%; display:block}
 footer{padding:0 24px calc(18px + env(safe-area-inset-bottom)); text-align:center}
@@ -408,8 +411,37 @@ body:has(.tuinveld){
 }
 .tuinveld-sfeerplant{
   position:absolute;
+  top:var(--sfeer-top);
+  width:var(--sfeer-breedte);
+  opacity:var(--sfeer-opacity);
+  transform:rotate(var(--sfeer-rot));
 }
+.tuinveld-sfeerplant--links{left:var(--sfeer-inset); right:auto}
+.tuinveld-sfeerplant--rechts{right:var(--sfeer-inset); left:auto}
 .tuinveld-sfeerplant svg{width:100%; height:auto; display:block; overflow:visible}
+@media (max-width:599px){
+  .tuinveld{
+    padding-bottom:calc(120px + env(safe-area-inset-bottom));
+  }
+  .tuinveld-leven,
+  .tuinveld-leeg{
+    margin-bottom:120px;
+  }
+  .tuinveld-sfeerplant{display:none}
+  .tuinveld-sfeerplant--mobiel{
+    display:block;
+    top:auto;
+    bottom:var(--sfeer-mobiel-bottom);
+    width:64px;
+    opacity:.26;
+  }
+  .tuinveld-sfeerplant--mobiel.tuinveld-sfeerplant--links{
+    left:var(--sfeer-mobiel-inset);
+  }
+  .tuinveld-sfeerplant--mobiel.tuinveld-sfeerplant--rechts{
+    right:var(--sfeer-mobiel-inset);
+  }
+}
 .tuinveld-bloei-icoon{
   width:min(118px, 36vw);
   margin:0 auto 2px;

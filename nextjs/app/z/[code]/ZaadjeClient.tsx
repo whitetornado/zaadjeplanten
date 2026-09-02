@@ -63,14 +63,19 @@ function inBeginscherm() {
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
+const GROEI_FASES: Stadium[] = [
+  "zaadje", "kiem", "knop", "openen", "bloem", "verwelkt", "zaadvorming",
+];
+
 export default function ZaadjeClient({
-  code, generatie, lijnNaam, stadiumBijLaden, urenTotVolgendeFase,
+  code, generatie, lijnNaam, stadiumBijLaden, urenTotVolgendeFase, herinneringIngesteld,
 }: {
   code: string;
   generatie: number;
   lijnNaam: string;
   stadiumBijLaden: Stadium;
   urenTotVolgendeFase: number | null;
+  herinneringIngesteld: boolean;
 }) {
   const [stadium, setStadium] = useState<Stadium>(stadiumBijLaden);
   const [urenRest, setUrenRest] = useState(urenTotVolgendeFase);
@@ -475,6 +480,7 @@ export default function ZaadjeClient({
   const faseIndex = FASES.indexOf(stadium);
   const toonFase = faseIndex >= 0;
   const faseRest = restTekst(urenRest, stadium);
+  const toonHerinneringTekst = herinneringIngesteld && GROEI_FASES.includes(stadium);
 
   return (
     <main className="bloem-app">
@@ -543,13 +549,19 @@ export default function ZaadjeClient({
       </div>
 
       <footer>
-        <button
-          className={t.primair ? "primair" : ""}
-          onClick={onCta}
-          disabled={bezig}
-        >
-          {t.cta}
-        </button>
+        {toonHerinneringTekst ? (
+          <p className="fase-rest herinnering-staat">
+            Je krijgt een seintje zodra ze bloeit en zodra ze klaar is om te blazen.
+          </p>
+        ) : (
+          <button
+            className={t.primair ? "primair" : ""}
+            onClick={onCta}
+            disabled={bezig}
+          >
+            {t.cta}
+          </button>
+        )}
         <div className="hint">{hint}</div>
         {IS_DEV && (
           <button className="stille-knop" type="button" onClick={demoVooruit}>
