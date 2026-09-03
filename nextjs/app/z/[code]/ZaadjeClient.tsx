@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { AANTAL_PLUIS, BloemMotor, startMic } from "@/lib/bloem-canvas";
+import { AANTAL_PLUIS, BloemMotor, ontgrendelAudio, startMic } from "@/lib/bloem-canvas";
 import { useSchudDetectie, vraagBewegingToestemming } from "@/lib/schud";
 
 type Stadium =
@@ -226,12 +226,14 @@ export default function ZaadjeClient({
 
   function speelBlaasGeluid() {
     if (geluidGespeeld.current) return;
-    geluidGespeeld.current = true;
     const a = audioRef.current;
     if (!a) return;
+    geluidGespeeld.current = true;
     a.currentTime = 0;
     a.volume = 0.85;
-    a.play().catch(() => {});
+    a.play().catch(() => {
+      geluidGespeeld.current = false;
+    });
   }
 
   const blaas = useCallback((kracht: number) => {
@@ -245,6 +247,7 @@ export default function ZaadjeClient({
   async function zetSensorenAan() {
     if (sensorenGestartRef.current) return;
     sensorenGestartRef.current = true;
+    ontgrendelAudio(audioRef.current);
 
     const beweging = vraagBewegingToestemming();
 
@@ -653,7 +656,7 @@ export default function ZaadjeClient({
       </div>
 
       <div id="toast" className={toastAan ? "zichtbaar" : ""}>{toast || "Gelukt"}</div>
-      <audio ref={audioRef} preload="auto" src="/blaas.mp3" />
+      <audio ref={audioRef} preload="auto" src="/blaas.mp3" playsInline />
       <audio ref={groeiAudioRef} preload="auto" src="/groei-geluid.mp3" playsInline />
     </main>
   );

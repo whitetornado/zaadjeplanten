@@ -411,6 +411,25 @@ export class BloemMotor {
 
 type AudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
 
+/** Safari/iOS: play() vanuit een RAF-lus telt niet als gebruikersgebaar.
+ *  Eén stille play+pause in de klik op “microfoon aan” ontgrendelt het element. */
+export function ontgrendelAudio(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  const herstel = () => {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 0.85;
+  };
+  try {
+    audio.volume = 0;
+    const p = audio.play();
+    if (p !== undefined) p.then(herstel).catch(herstel);
+    else herstel();
+  } catch {
+    herstel();
+  }
+}
+
 export async function startMic(
   blaasbaar: () => boolean,
   blaas: (kracht: number) => void,

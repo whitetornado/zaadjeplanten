@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { BloemMotor, startMic } from "@/lib/bloem-canvas";
+import { BloemMotor, ontgrendelAudio, startMic } from "@/lib/bloem-canvas";
 import { useSchudDetectie, vraagBewegingToestemming } from "@/lib/schud";
 
 declare global {
@@ -137,12 +137,14 @@ export default function PodiumApp() {
 
   const speelBlaasGeluid = useCallback(() => {
     if (geluidGespeeld.current) return;
-    geluidGespeeld.current = true;
     const a = audioRef.current;
     if (!a) return;
+    geluidGespeeld.current = true;
     a.currentTime = 0;
     a.volume = 0.85;
-    a.play().catch(() => {});
+    a.play().catch(() => {
+      geluidGespeeld.current = false;
+    });
   }, []);
 
   const blaas = useCallback((kracht: number) => {
@@ -156,6 +158,7 @@ export default function PodiumApp() {
   async function zetSensorenAan() {
     if (sensorenGestartRef.current) return;
     sensorenGestartRef.current = true;
+    ontgrendelAudio(audioRef.current);
 
     const beweging = vraagBewegingToestemming();
 
@@ -275,7 +278,7 @@ export default function PodiumApp() {
         strategy="afterInteractive"
         onLoad={() => setQrScriptKlaar(true)}
       />
-      <audio ref={audioRef} preload="auto" src="/blaas.mp3" />
+      <audio ref={audioRef} preload="auto" src="/blaas.mp3" playsInline />
       {!gestart ? (
         <main className="podium-start">
           <p className="lijn">Oleg Morozov · podium</p>
