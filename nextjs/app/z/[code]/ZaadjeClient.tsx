@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import { AANTAL_PLUIS, BloemMotor, startMic } from "@/lib/bloem-canvas";
 import { useSchudDetectie, vraagBewegingToestemming } from "@/lib/schud";
 
@@ -113,6 +114,10 @@ export default function ZaadjeClient({
 
   stadiumRef.current = stadium;
 
+  const params = useParams<{ code: string }>();
+  // Zelfde code als in de adresbalk (/z/[code]) — nooit een losse placeholder.
+  const zaadCode = typeof params.code === "string" && params.code ? params.code : code;
+
   useEffect(() => {
     const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const apis =
@@ -187,7 +192,7 @@ export default function ZaadjeClient({
     const res = await fetch("/api/plant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code: zaadCode }),
     });
     setBezig(false);
     if (res.ok) {
@@ -204,7 +209,7 @@ export default function ZaadjeClient({
     const res = await fetch("/api/blaas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code: zaadCode }),
     });
     const data = await res.json().catch(() => ({}));
     setBezig(false);
@@ -418,7 +423,7 @@ export default function ZaadjeClient({
       const res = await fetch("/api/plant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, pushAbonnement: sub.toJSON() }),
+        body: JSON.stringify({ code: zaadCode, pushAbonnement: sub.toJSON() }),
       });
       if (!res.ok) {
         toastMelding("Melding niet gelukt — kies gerust mail of agenda");
@@ -439,14 +444,14 @@ export default function ZaadjeClient({
     await fetch("/api/plant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, email: v }),
+      body: JSON.stringify({ code: zaadCode, email: v }),
     });
     kies("mail", "We mailen je als ze bloeit");
     setMailZichtbaar(false);
   }
 
   function kiesAgenda() {
-    window.location.href = `/api/agenda/${encodeURIComponent(code)}`;
+    window.location.href = `/api/agenda/${encodeURIComponent(zaadCode)}`;
     kies("agenda", "Staat in je agenda");
   }
 

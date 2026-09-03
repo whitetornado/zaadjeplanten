@@ -3,6 +3,11 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["web-push"],
   },
+  async redirects() {
+    return [
+      { source: "/prototype.html", destination: "/", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
