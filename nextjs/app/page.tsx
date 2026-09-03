@@ -1,5 +1,4 @@
 import { haalPubliekeTuinCijfers } from "@/lib/supabase";
-import { BloeiendePaardenbloem } from "./tuinveld-illustraties";
 import {
   TuinveldAchtergrond,
   TuinveldCluster,
@@ -23,6 +22,7 @@ export default async function Home() {
   const cijfers = await haalPubliekeTuinCijfers();
   const leeg = cijfers.totaalZaadjes === 0;
   const groei = geplantVisuals(cijfers);
+  const bloei = groepVisuals("bloem", cijfers.bloeiend);
   const pluis = groepVisuals("pluis", cijfers.klaar);
   const reis = groepVisuals("verspreid", cijfers.verspreid);
 
@@ -80,9 +80,7 @@ export default async function Home() {
 
           {cijfers.bloeiend > 0 && (
             <section className="tuinveld-rij">
-              <div className="tuinveld-bloei-icoon">
-                <BloeiendePaardenbloem />
-              </div>
+              <TuinveldCluster soorten={bloei.soorten} extra={bloei.extra} />
               <p>
                 {cijfers.bloeiend === 1
                   ? "1 bloem staat volop in bloei"
