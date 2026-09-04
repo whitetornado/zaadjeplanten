@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { BloeiendePaardenbloem, Roos, Tulp, type TulpTint } from "./tuinveld-illustraties";
 
-const MAX_TEKEN = 12;
+const MAX_TEKEN = 26;
 
 type Soort = "zaadje" | "kiem" | "knop" | "openen" | "bloem" | "pluis" | "verspreid";
 
@@ -186,20 +186,63 @@ function plantVoor(soort: Soort, key: string) {
   }
 }
 
-export function TuinveldCluster({ soorten, extra }: { soorten: Soort[]; extra: number }) {
-  if (soorten.length === 0) return null;
+type WeiItem = { soort: Soort; id: string };
+
+function idGetal(id: string) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function weiHoogte(n: number) {
+  const basis = 96;
+  const extra = Math.max(0, n - 5) * 4.2;
+  return Math.round(Math.min(208, basis + extra));
+}
+
+export function TuinveldCluster({ items, extra }: { items: WeiItem[]; extra: number }) {
+  if (items.length === 0) return null;
+  const hoogte = weiHoogte(items.length);
   return (
-    <div className="tuinveld-cluster">
-      {soorten.map((s, i) => (
-        <span
-          key={`${s}-${i}`}
-          className="tuinveld-plant-wrap"
-          style={{ transform: `translateY(${(i % 3) * 3}px) rotate(${((i * 17) % 7) - 3}deg)` }}
-        >
-          {plantVoor(s, `${s}-${i}`)}
-        </span>
-      ))}
-      {extra > 0 && <span className="tuinveld-meer">+{extra} meer</span>}
+    <div className="tuinveld-wei-wrap">
+      <div
+        className="tuinveld-wei"
+        style={{ "--wei-hoogte": `${hoogte}px` } as CSSProperties}
+        aria-hidden="true"
+      >
+        {items.map((item, index) => {
+          const h = idGetal(item.id) % 10007;
+          const n = items.length;
+          const vak = (index + 0.5) / n;
+          const trilling = (tussen(h, 1, -1, 1) * 0.45) / n;
+          const x = 5 + Math.min(0.98, Math.max(0.02, vak + trilling)) * 90;
+          const y = tussen(h, 2, 4, 36);
+          const schaal = tussen(h, 3, 0.7, 1.15);
+          const rot = tussen(h, 4, -6, 6);
+          const t = (schaal - 0.7) / (1.15 - 0.7);
+          const diepte = 0.7 + t * 0.3;
+          return (
+            <span
+              key={item.id}
+              className="tuinveld-wei-plant"
+              style={{
+                "--wei-x": `${x}%`,
+                "--wei-y": `${y}%`,
+                "--wei-rot": `${rot}deg`,
+                "--wei-schaal": String(schaal),
+                "--wei-diepte": String(diepte),
+                "--wei-z": String(Math.round(schaal * 100)),
+              } as CSSProperties}
+            >
+              {plantVoor(item.soort, item.id)}
+            </span>
+          );
+        })}
+      </div>
+      {extra > 0 && <p className="tuinveld-meer">+{extra} meer</p>}
     </div>
   );
 }
@@ -210,6 +253,12 @@ export function geplantVisuals(cijfers: {
   geplantKnop: number;
   geplantOpenen: number;
   geplant: number;
+  ids: {
+    zaadje: string[];
+    kiem: string[];
+    knop: string[];
+    openen: string[];
+  };
 }) {
   const soorten = verdeel([
     { id: "zaadje", n: cijfers.geplantZaadje },
@@ -217,14 +266,25 @@ export function geplantVisuals(cijfers: {
     { id: "knop", n: cijfers.geplantKnop },
     { id: "openen", n: cijfers.geplantOpenen },
   ]);
-  return { soorten, extra: Math.max(0, cijfers.geplant - MAX_TEKEN) };
+  const bak: Record<"zaadje" | "kiem" | "knop" | "openen", string[]> = {
+    zaadje: [...cijfers.ids.zaadje].sort(),
+    kiem: [...cijfers.ids.kiem].sort(),
+    knop: [...cijfers.ids.knop].sort(),
+    openen: [...cijfers.ids.openen].sort(),
+  };
+  const items: WeiItem[] = [];
+  for (const soort of soorten) {
+    const id = bak[soort].shift();
+    if (id) items.push({ soort, id });
+  }
+  return { items, extra: Math.max(0, cijfers.geplant - items.length) };
 }
 
-export function groepVisuals(soort: Soort, aantal: number) {
-  const n = Math.min(aantal, MAX_TEKEN);
+export function groepVisuals(soort: Soort, ids: string[]) {
+  const gekozen = [...ids].sort().slice(0, MAX_TEKEN);
   return {
-    soorten: Array.from({ length: n }, () => soort),
-    extra: Math.max(0, aantal - MAX_TEKEN),
+    items: gekozen.map((id) => ({ soort, id })),
+    extra: Math.max(0, ids.length - MAX_TEKEN),
   };
 }
 

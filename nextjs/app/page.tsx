@@ -22,9 +22,9 @@ export default async function Home() {
   const cijfers = await haalPubliekeTuinCijfers();
   const leeg = cijfers.totaalZaadjes === 0;
   const groei = geplantVisuals(cijfers);
-  const bloei = groepVisuals("bloem", cijfers.bloeiend);
-  const pluis = groepVisuals("pluis", cijfers.klaar);
-  const reis = groepVisuals("verspreid", cijfers.verspreid);
+  const bloei = groepVisuals("bloem", cijfers.ids.bloem);
+  const pluis = groepVisuals("pluis", cijfers.ids.pluis);
+  const reis = groepVisuals("verspreid", cijfers.ids.verspreid);
 
   return (
     <main className="tuinveld">
@@ -69,7 +69,7 @@ export default async function Home() {
 
           {cijfers.geplant > 0 && (
             <section className="tuinveld-rij">
-              <TuinveldCluster soorten={groei.soorten} extra={groei.extra} />
+              <TuinveldCluster items={groei.items} extra={groei.extra} />
               <p>
                 {cijfers.geplant === 1
                   ? "1 zaadje groeit nu ergens"
@@ -80,7 +80,7 @@ export default async function Home() {
 
           {cijfers.bloeiend > 0 && (
             <section className="tuinveld-rij">
-              <TuinveldCluster soorten={bloei.soorten} extra={bloei.extra} />
+              <TuinveldCluster items={bloei.items} extra={bloei.extra} />
               <p>
                 {cijfers.bloeiend === 1
                   ? "1 bloem staat volop in bloei"
@@ -91,7 +91,7 @@ export default async function Home() {
 
           {cijfers.klaar > 0 && (
             <section className="tuinveld-rij">
-              <TuinveldCluster soorten={pluis.soorten} extra={pluis.extra} />
+              <TuinveldCluster items={pluis.items} extra={pluis.extra} />
               <p>
                 {cijfers.klaar === 1
                   ? "1 pluisje wacht om verder te reizen"
@@ -102,7 +102,7 @@ export default async function Home() {
 
           {cijfers.verspreid > 0 && (
             <section className="tuinveld-rij">
-              <TuinveldCluster soorten={reis.soorten} extra={reis.extra} />
+              <TuinveldCluster items={reis.items} extra={reis.extra} />
               <p>
                 {cijfers.verspreid === 1
                   ? "1 pluisje heeft al een nieuwe plek gevonden"

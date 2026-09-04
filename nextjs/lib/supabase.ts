@@ -27,7 +27,28 @@ export type PubliekeTuinCijfers = {
   bloeiend: number;
   klaar: number;
   verspreid: number;
+  ids: {
+    zaadje: string[];
+    kiem: string[];
+    knop: string[];
+    openen: string[];
+    bloem: string[];
+    pluis: string[];
+    verspreid: string[];
+  };
 };
+
+function legeIds(): PubliekeTuinCijfers["ids"] {
+  return {
+    zaadje: [],
+    kiem: [],
+    knop: [],
+    openen: [],
+    bloem: [],
+    pluis: [],
+    verspreid: [],
+  };
+}
 
 export async function haalPubliekeTuinCijfers(): Promise<PubliekeTuinCijfers> {
   const supabase = createClient(
@@ -43,11 +64,11 @@ export async function haalPubliekeTuinCijfers(): Promise<PubliekeTuinCijfers> {
   );
 
   const pagina = 1000;
-  const rijen: Pick<Zaadje, "geplant_op" | "geblazen_op" | "generatie">[] = [];
+  const rijen: Pick<Zaadje, "id" | "geplant_op" | "geblazen_op" | "generatie">[] = [];
   for (let van = 0; ; van += pagina) {
     const { data, error } = await supabase
       .from("zaadjes")
-      .select("geplant_op, geblazen_op, generatie")
+      .select("id, geplant_op, geblazen_op, generatie")
       .range(van, van + pagina - 1);
     if (error || !data?.length) break;
     rijen.push(...data);
@@ -65,19 +86,20 @@ export async function haalPubliekeTuinCijfers(): Promise<PubliekeTuinCijfers> {
     bloeiend: 0,
     klaar: 0,
     verspreid: 0,
+    ids: legeIds(),
   };
 
   return rijen.reduce((acc, z) => {
     acc.totaalZaadjes += 1;
     acc.diepsteGeneratie = Math.max(acc.diepsteGeneratie, z.generatie ?? 0);
     const stadium = berekenStadium(z);
-    if (stadium === "zaadje") { acc.geplantZaadje += 1; acc.geplant += 1; }
-    else if (stadium === "kiem") { acc.geplantKiem += 1; acc.geplant += 1; }
-    else if (stadium === "knop") { acc.geplantKnop += 1; acc.geplant += 1; }
-    else if (stadium === "openen") { acc.geplantOpenen += 1; acc.geplant += 1; }
-    else if (stadium === "bloem") acc.bloeiend += 1;
-    else if (stadium === "zaadpluis") acc.klaar += 1;
-    else if (stadium === "uitgeblazen") acc.verspreid += 1;
+    if (stadium === "zaadje") { acc.geplantZaadje += 1; acc.geplant += 1; acc.ids.zaadje.push(z.id); }
+    else if (stadium === "kiem") { acc.geplantKiem += 1; acc.geplant += 1; acc.ids.kiem.push(z.id); }
+    else if (stadium === "knop") { acc.geplantKnop += 1; acc.geplant += 1; acc.ids.knop.push(z.id); }
+    else if (stadium === "openen") { acc.geplantOpenen += 1; acc.geplant += 1; acc.ids.openen.push(z.id); }
+    else if (stadium === "bloem") { acc.bloeiend += 1; acc.ids.bloem.push(z.id); }
+    else if (stadium === "zaadpluis") { acc.klaar += 1; acc.ids.pluis.push(z.id); }
+    else if (stadium === "uitgeblazen") { acc.verspreid += 1; acc.ids.verspreid.push(z.id); }
     return acc;
   }, leeg);
 }

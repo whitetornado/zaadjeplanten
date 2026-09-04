@@ -378,33 +378,40 @@ body:has(.tuinveld){
   max-width:28em;
   margin:0 auto 28px;
 }
-.tuinveld-rij{margin:0 0 28px}
+.tuinveld-rij{margin:0 0 36px}
 .tuinveld-rij > p{
   font-size:14px;
   color:var(--ink-soft);
   margin-top:8px;
   line-height:1.45;
 }
-.tuinveld-cluster{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  align-items:flex-end;
-  gap:2px 4px;
-  min-height:72px;
+.tuinveld-wei-wrap{width:100%}
+.tuinveld-wei{
+  position:relative;
+  width:100%;
+  height:var(--wei-hoogte);
+  overflow:visible;
 }
-.tuinveld-plant-wrap{display:block; width:42px; line-height:0}
+.tuinveld-wei-plant{
+  position:absolute;
+  left:var(--wei-x);
+  bottom:var(--wei-y);
+  width:36px;
+  line-height:0;
+  transform:translateX(-50%) rotate(var(--wei-rot)) scale(var(--wei-schaal));
+  transform-origin:bottom center;
+  opacity:var(--wei-diepte);
+  z-index:var(--wei-z);
+}
 @media (min-width:520px){
-  .tuinveld-plant-wrap{width:52px}
+  .tuinveld-wei-plant{width:46px}
 }
 .tuinveld-plant{width:100%; height:auto; display:block; overflow:visible}
 .tuinveld-meer{
-  align-self:center;
-  font-size:13px;
-  font-weight:600;
-  color:var(--ink-soft);
-  padding:0 8px 12px;
-  white-space:nowrap;
+  font-size:12px;
+  color:var(--ink-faint);
+  margin:6px 0 0;
+  letter-spacing:.01em;
 }
 .tuinveld-achtergrond{
   position:absolute; inset:0;
