@@ -317,3 +317,46 @@ export function genereerCode(lengte = 8) {
   }
   return code;
 }
+
+export type Afstamming = {
+  stappenVerder: number;
+  hoogsteGeneratie: number;
+};
+
+const MAX_AFSTAMMING_STAPPEN = 50;
+
+/**
+ * Volgt de keten vanaf een zaadje: elk zaadje heeft hoogstens één kind
+ * (maximaal één keer doorgeblazen), dus dit is altijd een rechte lijn.
+ * stappenVerder = hoeveel keer doorgegeven VANAF dit zaadje.
+ */
+export async function telAfstammelingen(zaadjeId: string): Promise<Afstamming> {
+  const supabase = supabaseServer();
+
+  const { data: start } = await supabase
+    .from("zaadjes")
+    .select("id, generatie")
+    .eq("id", zaadjeId)
+    .maybeSingle();
+
+  let huidigId = zaadjeId;
+  let stappenVerder = 0;
+  let hoogsteGeneratie = start?.generatie ?? 0;
+
+  for (let i = 0; i < MAX_AFSTAMMING_STAPPEN; i++) {
+    const { data: kinderen } = await supabase
+      .from("zaadjes")
+      .select("id, generatie")
+      .eq("ouder_id", huidigId)
+      .limit(1);
+
+    const kind = kinderen?.[0];
+    if (!kind) break;
+
+    stappenVerder += 1;
+    hoogsteGeneratie = Math.max(hoogsteGeneratie, kind.generatie ?? 0);
+    huidigId = kind.id;
+  }
+
+  return { stappenVerder, hoogsteGeneratie };
+}

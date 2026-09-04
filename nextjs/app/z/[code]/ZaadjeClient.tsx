@@ -43,6 +43,12 @@ function restTekst(uren: number | null, stadium: Stadium): string | null {
   return `nog ongeveer ${uren} uur tot de volgende fase`;
 }
 
+function reisTekst(stappen: number): string {
+  if (stappen <= 0) return "Nog niemand nam 'm over — misschien vandaag nog?";
+  if (stappen === 1) return "Jouw zaadje reisde al naar 1 telefoon verder.";
+  return `Jouw zaadje reisde al naar ${stappen} telefoons verder.`;
+}
+
 function vapidNaarBytes(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob(base64.replace(/-/g, "+").replace(/_/g, "/") + pad);
@@ -70,6 +76,7 @@ const GROEI_FASES: Stadium[] = [
 
 export default function ZaadjeClient({
   code, generatie, lijnNaam, stadiumBijLaden, urenTotVolgendeFase, herinneringIngesteld,
+  stappenVerder, hoogsteGeneratie,
 }: {
   code: string;
   generatie: number;
@@ -77,6 +84,8 @@ export default function ZaadjeClient({
   stadiumBijLaden: Stadium;
   urenTotVolgendeFase: number | null;
   herinneringIngesteld: boolean;
+  stappenVerder: number;
+  hoogsteGeneratie: number;
 }) {
   const [stadium, setStadium] = useState<Stadium>(stadiumBijLaden);
   const [urenRest, setUrenRest] = useState(urenTotVolgendeFase);
@@ -646,6 +655,7 @@ export default function ZaadjeClient({
           </button>
           <button type="button" onClick={kopieer} disabled={!deelLink}>Kopieer link</button>
         </div>
+        <p className="reis-verder">{reisTekst(stappenVerder)}</p>
         <div className="artiest">
           <div className="foto">O</div>
           <span>

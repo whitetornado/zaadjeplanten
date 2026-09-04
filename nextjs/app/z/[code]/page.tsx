@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { supabaseServer, berekenStadium, urenTotVolgendeFase } from "@/lib/supabase";
+import { supabaseServer, berekenStadium, urenTotVolgendeFase, telAfstammelingen } from "@/lib/supabase";
 import ZaadjeClient from "./ZaadjeClient";
 
 export const dynamic = "force-dynamic"; // stadium hangt af van "nu", dus nooit cachen
@@ -14,7 +14,7 @@ export default async function ZaadjePagina({
 
   const { data: zaadje } = await supabase
     .from("zaadjes")
-    .select("code, generatie, geplant_op, geblazen_op, lijn_id, email, push_abonnement")
+    .select("id, code, generatie, geplant_op, geblazen_op, lijn_id, email, push_abonnement")
     .eq("code", params.code)
     .single();
 
@@ -31,6 +31,10 @@ export default async function ZaadjePagina({
     (typeof zaadje.email === "string" && zaadje.email.trim().length > 0) ||
     Boolean(zaadje.push_abonnement);
 
+  const afstamming = stadium === "uitgeblazen"
+    ? await telAfstammelingen(zaadje.id)
+    : { stappenVerder: 0, hoogsteGeneratie: zaadje.generatie };
+
   return (
     <ZaadjeClient
       code={zaadje.code}
@@ -39,6 +43,8 @@ export default async function ZaadjePagina({
       stadiumBijLaden={stadium}
       urenTotVolgendeFase={urenTotVolgendeFase(zaadje)}
       herinneringIngesteld={herinneringIngesteld}
+      stappenVerder={afstamming.stappenVerder}
+      hoogsteGeneratie={afstamming.hoogsteGeneratie}
     />
   );
 }
