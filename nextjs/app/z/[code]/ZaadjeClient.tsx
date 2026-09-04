@@ -558,7 +558,7 @@ export default function ZaadjeClient({
   const toonHerinneringTekst = herinneringIngesteld && GROEI_FASES.includes(stadium);
 
   return (
-    <main className="bloem-app">
+    <main className={"bloem-app" + (stadium === "uitgeblazen" ? " na-blazen" : "")}>
       {kijktNaarBloem && (
         <button
           className="geluid-knop"
@@ -616,6 +616,16 @@ export default function ZaadjeClient({
             </div>
             {faseRest && <p className="fase-rest">{faseRest}</p>}
           </div>
+        )}
+        {stadium === "uitgeblazen" && (
+          stappenVerder > 0 && stappen.length > 0 ? (
+            <ReisTijdlijn stappen={stappen} />
+          ) : (
+            <div className="reis">
+              <h3>De reis van je zaadje</h3>
+              <p className="reis-verder">Nog niemand nam 'm over — misschien vandaag nog?</p>
+            </div>
+          )
         )}
       </header>
 
@@ -713,11 +723,6 @@ export default function ZaadjeClient({
           </button>
           <button type="button" onClick={kopieer} disabled={!deelLink}>Kopieer link</button>
         </div>
-        {stappenVerder > 0 && stappen.length > 0 ? (
-          <ReisTijdlijn stappen={stappen} />
-        ) : (
-          <p className="reis-verder">Nog niemand nam 'm over — misschien vandaag nog?</p>
-        )}
         <div className="artiest">
           <div className="foto">O</div>
           <span>
