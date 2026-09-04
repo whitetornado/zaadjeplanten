@@ -430,6 +430,8 @@ export function ontgrendelAudio(audio: HTMLAudioElement | null) {
   }
 }
 
+const BLAAS_RMS_DREMPEL = 0.08;
+
 export async function startMic(
   blaasbaar: () => boolean,
   blaas: (kracht: number) => void,
@@ -470,9 +472,9 @@ export async function startMic(
     let som = 0;
     for (let i = 0; i < data.length; i++) som += data[i] * data[i];
     const rms = Math.sqrt(som / data.length);
-    if (rms > 0.12) {
+    if (rms > BLAAS_RMS_DREMPEL) {
       boven++;
-      if (boven > 4) blaas(Math.min(1, (rms - 0.12) * 4));
+      if (boven > 4) blaas(Math.min(1, (rms - BLAAS_RMS_DREMPEL) * 4));
     } else boven = Math.max(0, boven - 1);
     requestAnimationFrame(luister);
   }
