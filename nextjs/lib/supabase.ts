@@ -318,9 +318,15 @@ export function genereerCode(lengte = 8) {
   return code;
 }
 
+export type ReisStap = {
+  generatie: number;
+  geblazen_op: string | null;
+};
+
 export type Afstamming = {
   stappenVerder: number;
   hoogsteGeneratie: number;
+  stappen: ReisStap[];
 };
 
 const MAX_AFSTAMMING_STAPPEN = 50;
@@ -329,24 +335,28 @@ const MAX_AFSTAMMING_STAPPEN = 50;
  * Volgt de keten vanaf een zaadje: elk zaadje heeft hoogstens één kind
  * (maximaal één keer doorgeblazen), dus dit is altijd een rechte lijn.
  * stappenVerder = hoeveel keer doorgegeven VANAF dit zaadje.
+ * Elke stap krijgt de generatie van het kind, en geblazen_op van de ouder
+ * (het moment waarop die hop begon).
  */
 export async function telAfstammelingen(zaadjeId: string): Promise<Afstamming> {
   const supabase = supabaseServer();
 
   const { data: start } = await supabase
     .from("zaadjes")
-    .select("id, generatie")
+    .select("id, generatie, geblazen_op")
     .eq("id", zaadjeId)
     .maybeSingle();
 
   let huidigId = zaadjeId;
+  let huidigGeblazen = start?.geblazen_op ?? null;
   let stappenVerder = 0;
   let hoogsteGeneratie = start?.generatie ?? 0;
+  const stappen: ReisStap[] = [];
 
   for (let i = 0; i < MAX_AFSTAMMING_STAPPEN; i++) {
     const { data: kinderen } = await supabase
       .from("zaadjes")
-      .select("id, generatie")
+      .select("id, generatie, geblazen_op")
       .eq("ouder_id", huidigId)
       .limit(1);
 
@@ -355,8 +365,13 @@ export async function telAfstammelingen(zaadjeId: string): Promise<Afstamming> {
 
     stappenVerder += 1;
     hoogsteGeneratie = Math.max(hoogsteGeneratie, kind.generatie ?? 0);
+    stappen.push({
+      generatie: kind.generatie,
+      geblazen_op: huidigGeblazen,
+    });
     huidigId = kind.id;
+    huidigGeblazen = kind.geblazen_op;
   }
 
-  return { stappenVerder, hoogsteGeneratie };
+  return { stappenVerder, hoogsteGeneratie, stappen };
 }

@@ -43,10 +43,67 @@ function restTekst(uren: number | null, stadium: Stadium): string | null {
   return `nog ongeveer ${uren} uur tot de volgende fase`;
 }
 
-function reisTekst(stappen: number): string {
-  if (stappen <= 0) return "Nog niemand nam 'm over — misschien vandaag nog?";
-  if (stappen === 1) return "Jouw zaadje reisde al naar 1 telefoon verder.";
-  return `Jouw zaadje reisde al naar ${stappen} telefoons verder.`;
+type ReisStap = { generatie: number; geblazen_op: string | null };
+
+const MAX_REIS_BOLLETJES = 10;
+
+function doorgeblazenTekst(iso: string | null): string | null {
+  if (!iso) return null;
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "zojuist doorgeblazen";
+  const dagen = Math.floor(ms / 86_400_000);
+  if (dagen < 1) {
+    const uren = Math.floor(ms / 3_600_000);
+    if (uren < 1) return "zojuist doorgeblazen";
+    if (uren === 1) return "1 uur geleden doorgeblazen";
+    return `${uren} uur geleden doorgeblazen`;
+  }
+  if (dagen === 1) return "gisteren doorgeblazen";
+  if (dagen < 14) return `${dagen} dagen geleden doorgeblazen`;
+  const weken = Math.round(dagen / 7);
+  if (weken < 8) {
+    return weken === 1 ? "1 week geleden doorgeblazen" : `${weken} weken geleden doorgeblazen`;
+  }
+  const datum = new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
+  return `${datum} doorgeblazen`;
+}
+
+function ReisTijdlijn({ stappen }: { stappen: ReisStap[] }) {
+  const zichtbaar = stappen.slice(0, MAX_REIS_BOLLETJES);
+  const verborgen = Math.max(0, stappen.length - zichtbaar.length);
+  const [gekozen, setGekozen] = useState(zichtbaar.length - 1);
+  const gekozenStap = zichtbaar[gekozen];
+  const bijschrift = gekozenStap ? doorgeblazenTekst(gekozenStap.geblazen_op) : null;
+
+  return (
+    <div className="reis">
+      <h3>De reis van je zaadje</h3>
+      <div className="reis-rij">
+        <div className="reis-lijn">
+          <span className="reis-draad" aria-hidden="true" />
+          {zichtbaar.map((stap, i) => {
+            const wanneer = doorgeblazenTekst(stap.geblazen_op);
+            return (
+              <button
+                key={`${stap.generatie}-${i}`}
+                type="button"
+                className={"reis-bol gevuld" + (i === gekozen ? " aan" : "")}
+                aria-pressed={i === gekozen}
+                aria-label={"Generatie " + stap.generatie + (wanneer ? ", " + wanneer : "")}
+                onPointerEnter={() => setGekozen(i)}
+                onFocus={() => setGekozen(i)}
+                onClick={() => setGekozen(i)}
+              />
+            );
+          })}
+          <span className="reis-bol leeg" aria-hidden="true" />
+          <span className="reis-bol leeg" aria-hidden="true" />
+        </div>
+        {verborgen > 0 && <span className="reis-meer">+{verborgen} meer</span>}
+      </div>
+      <p className="reis-datum">{bijschrift || "\u00a0"}</p>
+    </div>
+  );
 }
 
 function vapidNaarBytes(base64: string) {
@@ -76,7 +133,7 @@ const GROEI_FASES: Stadium[] = [
 
 export default function ZaadjeClient({
   code, generatie, lijnNaam, stadiumBijLaden, urenTotVolgendeFase, herinneringIngesteld,
-  stappenVerder, hoogsteGeneratie,
+  stappenVerder, hoogsteGeneratie, stappen,
 }: {
   code: string;
   generatie: number;
@@ -86,6 +143,7 @@ export default function ZaadjeClient({
   herinneringIngesteld: boolean;
   stappenVerder: number;
   hoogsteGeneratie: number;
+  stappen: ReisStap[];
 }) {
   const [stadium, setStadium] = useState<Stadium>(stadiumBijLaden);
   const [urenRest, setUrenRest] = useState(urenTotVolgendeFase);
@@ -655,7 +713,11 @@ export default function ZaadjeClient({
           </button>
           <button type="button" onClick={kopieer} disabled={!deelLink}>Kopieer link</button>
         </div>
-        <p className="reis-verder">{reisTekst(stappenVerder)}</p>
+        {stappenVerder > 0 && stappen.length > 0 ? (
+          <ReisTijdlijn stappen={stappen} />
+        ) : (
+          <p className="reis-verder">Nog niemand nam 'm over — misschien vandaag nog?</p>
+        )}
         <div className="artiest">
           <div className="foto">O</div>
           <span>

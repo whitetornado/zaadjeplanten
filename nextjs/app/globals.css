@@ -198,6 +198,77 @@ button.primair:active{background:var(--bloom)}
   margin:14px 0 0;
   line-height:1.45;
 }
+#paneel .reis{
+  margin:16px 0 0;
+}
+#paneel .reis h3{
+  font-family:'Fraunces',serif;
+  font-weight:500;
+  font-size:15px;
+  margin:0 0 10px;
+}
+#paneel .reis-rij{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+#paneel .reis-lijn{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  isolation:isolate;
+}
+#paneel .reis-draad{
+  position:absolute;
+  left:10px; right:10px;
+  top:50%; height:1px;
+  background:rgba(244,242,234,.2);
+  z-index:0;
+}
+#paneel button.reis-bol.gevuld{
+  position:relative; z-index:1;
+  width:22px; height:22px; min-width:22px; max-width:22px;
+  padding:0; margin:0;
+  border:none; border-radius:50%;
+  background:transparent;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+#paneel button.reis-bol.gevuld::after{
+  content:"";
+  width:8px; height:8px; border-radius:50%;
+  background:var(--bloom);
+}
+#paneel button.reis-bol.gevuld.aan::after{
+  box-shadow:0 0 0 3px rgba(138,125,216,.3);
+}
+#paneel button.reis-bol.gevuld:active{
+  transform:none;
+  background:transparent;
+}
+#paneel .reis-bol.leeg{
+  position:relative; z-index:1;
+  width:8px; height:8px; margin:0 7px;
+  border-radius:50%;
+  border:1px solid rgba(244,242,234,.34);
+  background:transparent;
+  flex-shrink:0;
+}
+#paneel .reis-meer{
+  font-size:11px;
+  color:var(--ink-faint);
+  letter-spacing:.02em;
+  white-space:nowrap;
+}
+#paneel .reis-datum{
+  font-size:11.5px;
+  color:var(--ink-faint);
+  margin:7px 0 0;
+  min-height:1.35em;
+  line-height:1.35;
+}
 .artiest{display:flex; align-items:center; gap:10px; justify-content:center; margin-top:18px; opacity:.75}
 .artiest .foto{
   width:34px; height:34px; border-radius:50%;

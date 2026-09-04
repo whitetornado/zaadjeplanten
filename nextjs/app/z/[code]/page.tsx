@@ -33,7 +33,7 @@ export default async function ZaadjePagina({
 
   const afstamming = stadium === "uitgeblazen"
     ? await telAfstammelingen(zaadje.id)
-    : { stappenVerder: 0, hoogsteGeneratie: zaadje.generatie };
+    : { stappenVerder: 0, hoogsteGeneratie: zaadje.generatie, stappen: [] };
 
   return (
     <ZaadjeClient
@@ -45,6 +45,7 @@ export default async function ZaadjePagina({
       herinneringIngesteld={herinneringIngesteld}
       stappenVerder={afstamming.stappenVerder}
       hoogsteGeneratie={afstamming.hoogsteGeneratie}
+      stappen={afstamming.stappen}
     />
   );
 }
