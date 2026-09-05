@@ -411,10 +411,13 @@ export class BloemMotor {
 
 type AudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
 
-/** Safari/iOS: play() vanuit een RAF-lus telt niet als gebruikersgebaar.
- *  Eén mute play+pause in de klik op “microfoon aan” ontgrendelt het element.
+/** Safari/iOS: play() buiten een klik telt niet als gebruikersgebaar.
+ *  Eén mute play+pause in een echte klik ontgrendelt het element voor later.
  *  muted (niet alleen volume 0) — volume 0 wordt op iOS soms als “geen play” gezien. */
-export function ontgrendelAudio(audio: HTMLAudioElement | null) {
+export function ontgrendelAudio(
+  audio: HTMLAudioElement | null,
+  herstelVolume = 0.85
+) {
   if (!audio) return;
   const herstel = () => {
     audio.pause();
@@ -424,7 +427,7 @@ export function ontgrendelAudio(audio: HTMLAudioElement | null) {
       /* iOS kan currentTime weigeren tijdens laden */
     }
     audio.muted = false;
-    audio.volume = 0.85;
+    audio.volume = herstelVolume;
   };
   try {
     if (audio.readyState < 2) audio.load();

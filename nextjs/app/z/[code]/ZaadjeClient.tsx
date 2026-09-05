@@ -166,6 +166,8 @@ export default function ZaadjeClient({
   const groeiPauzeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const magGroeiSpelenRef = useRef(false);
   const [gedempt, setGedempt] = useState(false);
+  /** Autoplay geblokkeerd (typisch: verse link vanuit mail zonder voorafgaande klik). */
+  const [groeiWachtOpTik, setGroeiWachtOpTik] = useState(false);
   const motorRef = useRef<BloemMotor | null>(null);
   const stadiumRef = useRef(stadium);
   const groeiRef = useRef(0);
@@ -238,8 +240,35 @@ export default function ZaadjeClient({
   }
 
   function speelGroeiGeluid(audio: HTMLAudioElement) {
-    audio.currentTime = 0;
-    audio.play().then(() => fadeInGroei(audio)).catch(() => {});
+    try {
+      audio.currentTime = 0;
+    } catch {
+      /* iOS kan currentTime weigeren tijdens laden */
+    }
+    audio.muted = false;
+    audio.play()
+      .then(() => {
+        setGroeiWachtOpTik(false);
+        fadeInGroei(audio);
+      })
+      .catch(() => {
+        // Stil falen — browser-autoplay. Gebruiker kan starten via hint of mute-knop.
+        if (magGroeiSpelenRef.current) setGroeiWachtOpTik(true);
+      });
+  }
+
+  /** play() synchroon in een echte klik — nodig op iOS; useEffect telt niet als gebaar. */
+  function startGroeiMetGebaar() {
+    const audio = groeiAudioRef.current;
+    if (!audio || !kijktNaarBloem) return;
+    setGroeiWachtOpTik(false);
+    setGedempt(false);
+    magGroeiSpelenRef.current = true;
+    speelGroeiGeluid(audio);
+  }
+
+  function ontgrendelGroeiGeluid() {
+    ontgrendelAudio(groeiAudioRef.current, 0);
   }
 
   const toastMelding = useCallback((txt: string) => {
@@ -255,6 +284,9 @@ export default function ZaadjeClient({
   }, [stadium]);
 
   async function plant() {
+    // Unlock vóór await — zelfde gestapelde klik blijft geldig voor later autoplay
+    // in deze paginasessie (niet voor een verse bezoek via mail dagen later).
+    ontgrendelGroeiGeluid();
     setBezig(true);
     const res = await fetch("/api/plant", {
       method: "POST",
@@ -353,6 +385,7 @@ export default function ZaadjeClient({
     const audio = groeiAudioRef.current;
     if (!audio || !kijktNaarBloem || gedempt) {
       stopGroeiGeluid();
+      if (!kijktNaarBloem || gedempt) setGroeiWachtOpTik(false);
       return;
     }
 
@@ -452,10 +485,16 @@ export default function ZaadjeClient({
       return;
     }
     const i = VOLGORDE.indexOf(stadium);
-    if (i >= 0 && i < VOLGORDE.length - 1) setStadium(VOLGORDE[i + 1]);
+    if (i >= 0 && i < VOLGORDE.length - 1) {
+      const volgende = VOLGORDE[i + 1];
+      // Demo-klik: ontgrendel zodat autoplay in dezelfde sessie mag.
+      if (volgende === "openen" || volgende === "bloem") ontgrendelGroeiGeluid();
+      setStadium(volgende);
+    }
   }
 
   async function kiesPush() {
+    ontgrendelGroeiGeluid();
     if (pushStatus === "ios") {
       toastMelding("Voeg deze pagina eerst toe aan je beginscherm");
       return;
@@ -506,6 +545,7 @@ export default function ZaadjeClient({
   }
 
   async function kiesMail() {
+    ontgrendelGroeiGeluid();
     const v = mail.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) {
       toastMelding("Dat lijkt geen geldig e-mailadres");
@@ -521,6 +561,7 @@ export default function ZaadjeClient({
   }
 
   function kiesAgenda() {
+    ontgrendelGroeiGeluid();
     window.location.href = `/api/agenda/${encodeURIComponent(zaadCode)}`;
     kies("agenda", "Staat in je agenda");
   }
@@ -560,37 +601,68 @@ export default function ZaadjeClient({
   return (
     <main className={"bloem-app" + (stadium === "uitgeblazen" ? " na-blazen" : "")}>
       {kijktNaarBloem && (
-        <button
-          className="geluid-knop"
-          type="button"
-          aria-label={gedempt ? "Zet geluid aan" : "Zet geluid uit"}
-          aria-pressed={gedempt}
-          onClick={() => setGedempt((nu) => !nu)}
-        >
-          {gedempt ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 10v4h3l4 3V7L7 10H4zM16.2 9.2l4.6 5.6M20.8 9.2l-4.6 5.6"
-              />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 10v4h3l4 3V7L7 10H4zM15.2 8.8a4.2 4.2 0 0 1 0 6.4M17.6 6.6a7.2 7.2 0 0 1 0 10.8"
-              />
-            </svg>
+        <>
+          <button
+            className="geluid-knop"
+            type="button"
+            aria-label={
+              groeiWachtOpTik && !gedempt
+                ? "Tik om geluid te horen"
+                : gedempt
+                  ? "Zet geluid aan"
+                  : "Zet geluid uit"
+            }
+            aria-pressed={gedempt}
+            onClick={() => {
+              // Bij geblokkeerde autoplay: eerste tik start geluid (gebruikersgebaar).
+              if (groeiWachtOpTik && !gedempt) {
+                startGroeiMetGebaar();
+                return;
+              }
+              if (gedempt) {
+                // Unmute: play() moet in deze klik, niet pas in een useEffect.
+                startGroeiMetGebaar();
+                return;
+              }
+              setGedempt(true);
+              setGroeiWachtOpTik(false);
+              stopGroeiGeluid();
+            }}
+          >
+            {gedempt || groeiWachtOpTik ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 10v4h3l4 3V7L7 10H4zM16.2 9.2l4.6 5.6M20.8 9.2l-4.6 5.6"
+                />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 10v4h3l4 3V7L7 10H4zM15.2 8.8a4.2 4.2 0 0 1 0 6.4M17.6 6.6a7.2 7.2 0 0 1 0 10.8"
+                />
+              </svg>
+            )}
+          </button>
+          {groeiWachtOpTik && !gedempt && (
+            <button
+              type="button"
+              className="geluid-hint"
+              onClick={startGroeiMetGebaar}
+            >
+              tik om geluid te horen
+            </button>
           )}
-        </button>
+        </>
       )}
       <header>
         <div className="lijn">
@@ -706,7 +778,14 @@ export default function ZaadjeClient({
             <div className="s">Eén tik, werkt op elke telefoon</div>
           </div>
         </div>
-        <button className="zelf" type="button" onClick={() => setKiezerOpen(false)}>
+        <button
+          className="zelf"
+          type="button"
+          onClick={() => {
+            ontgrendelGroeiGeluid();
+            setKiezerOpen(false);
+          }}
+        >
           ik onthoud het zelf wel
         </button>
       </div>
