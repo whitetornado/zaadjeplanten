@@ -168,8 +168,6 @@ export default function ZaadjeClient({
   const [gedempt, setGedempt] = useState(false);
   /** Autoplay geblokkeerd (typisch: verse link vanuit mail zonder voorafgaande klik). */
   const [groeiWachtOpTik, setGroeiWachtOpTik] = useState(false);
-  // TEMP DEBUG (groei-audio iOS) — verwijder na diagnose
-  const [groeiDebug, setGroeiDebug] = useState("");
   const motorRef = useRef<BloemMotor | null>(null);
   const stadiumRef = useRef(stadium);
   const groeiRef = useRef(0);
@@ -278,30 +276,8 @@ export default function ZaadjeClient({
   function startGroeiMetGebaar() {
     const audio = groeiAudioRef.current;
     const stadiumNu = stadiumRef.current;
-    if (!audio) {
-      // TEMP DEBUG (groei-audio iOS) — verwijder na diagnose
-      setGroeiDebug("fout: geen groeiAudioRef");
-      return;
-    }
-    if (stadiumNu !== "openen" && stadiumNu !== "bloem") {
-      // TEMP DEBUG (groei-audio iOS) — verwijder na diagnose
-      setGroeiDebug(`fout: stadium=${stadiumNu}`);
-      return;
-    }
-
-    // TEMP DEBUG (groei-audio iOS) — snapshot vóór play(); verwijder na diagnose
-    const blaas = audioRef.current;
-    const audioCount =
-      typeof document !== "undefined" ? document.querySelectorAll("audio").length : -1;
-    const snapshot =
-      `rs=${audio.readyState} ns=${audio.networkState} ` +
-      `src=${audio.currentSrc || audio.src || "(leeg)"} ` +
-      `muted=${audio.muted} paused=${audio.paused} ` +
-      `audios=${audioCount} ` +
-      `blaasSrc=${blaas ? (blaas.currentSrc || blaas.src || "(leeg)") : "(geen)"} ` +
-      `blaasPaused=${blaas ? blaas.paused : "-"}`;
-    console.log("[TEMP DEBUG groei-audio]", snapshot);
-    setGroeiDebug(`tik… ${snapshot}`);
+    if (!audio) return;
+    if (stadiumNu !== "openen" && stadiumNu !== "bloem") return;
 
     wisGroeiFade();
     wisGroeiPauze();
@@ -315,17 +291,10 @@ export default function ZaadjeClient({
     const gelukt = () => {
       setGedempt(false);
       setGroeiWachtOpTik(false);
-      // TEMP DEBUG (groei-audio iOS) — verwijder na diagnose
-      setGroeiDebug(`ok ${snapshot}`);
     };
-    const mislukt = (err: unknown) => {
+    const mislukt = () => {
+      // Stil falen: geen foutmelding, icoon/hint blijven bruikbaar voor een nieuwe poging.
       setGroeiWachtOpTik(true);
-      // TEMP DEBUG (groei-audio iOS) — verwijder na diagnose
-      const e = err as { name?: string; message?: string } | null;
-      const naam = e?.name || "Error";
-      const msg = e?.message || String(err);
-      console.warn("[TEMP DEBUG groei-audio] play() geweigerd:", naam, msg, snapshot);
-      setGroeiDebug(`fout: ${naam} — ${msg} | ${snapshot}`);
     };
 
     if (poging === undefined) gelukt();
@@ -733,12 +702,6 @@ export default function ZaadjeClient({
             >
               tik om geluid te horen
             </button>
-          )}
-          {/* TEMP DEBUG (groei-audio iOS) — verwijder na diagnose */}
-          {groeiDebug && (
-            <p className="geluid-debug" role="status">
-              {groeiDebug}
-            </p>
           )}
         </>
       )}
