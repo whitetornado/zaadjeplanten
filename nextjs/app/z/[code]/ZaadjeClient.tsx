@@ -224,47 +224,80 @@ export default function ZaadjeClient({
     const audio = groeiAudioRef.current;
     if (!audio) return;
     audio.pause();
-    audio.currentTime = 0;
-  }
-
-  function fadeInGroei(audio: HTMLAudioElement) {
-    wisGroeiFade();
-    audio.volume = 0;
-    const stappen = 20;
-    let n = 0;
-    groeiFadeRef.current = setInterval(() => {
-      n += 1;
-      audio.volume = Math.min(GROEI_VOLUME, (n / stappen) * GROEI_VOLUME);
-      if (n >= stappen) wisGroeiFade();
-    }, 50);
-  }
-
-  function speelGroeiGeluid(audio: HTMLAudioElement) {
     try {
       audio.currentTime = 0;
     } catch {
       /* iOS kan currentTime weigeren tijdens laden */
     }
+  }
+
+  function fadeInGroei(audio: HTMLAudioElement) {
+    wisGroeiFade();
+    // Nooit helemaal 0: iOS kan "volume 0"-playback stilleggen alsof het muted is.
+    audio.volume = 0.01;
+    const stappen = 20;
+    let n = 0;
+    groeiFadeRef.current = setInterval(() => {
+      n += 1;
+      audio.volume = Math.min(GROEI_VOLUME, 0.01 + (n / stappen) * (GROEI_VOLUME - 0.01));
+      if (n >= stappen) wisGroeiFade();
+    }, 50);
+  }
+
+  /** Autoplay-poging (mag falen). Geen setState vóór play — alleen erna. */
+  function speelGroeiGeluid(audio: HTMLAudioElement) {
     audio.muted = false;
-    audio.play()
+    try {
+      if (audio.readyState >= 1) audio.currentTime = 0;
+    } catch {
+      /* negeren */
+    }
+    const poging = audio.play();
+    if (poging === undefined) {
+      fadeInGroei(audio);
+      setGroeiWachtOpTik(false);
+      return;
+    }
+    poging
       .then(() => {
         setGroeiWachtOpTik(false);
         fadeInGroei(audio);
       })
       .catch(() => {
-        // Stil falen — browser-autoplay. Gebruiker kan starten via hint of mute-knop.
         if (magGroeiSpelenRef.current) setGroeiWachtOpTik(true);
       });
   }
 
-  /** play() synchroon in een echte klik — nodig op iOS; useEffect telt niet als gebaar. */
+  /**
+   * Echte gebruikersklik → play() ZO SYNCHRON MOGELIJK.
+   * Geen setState, geen await, geen fade-vanuit-0 vóór play():
+   * iOS Safari laat anders de activatie verlopen of dempt volume-0 stil.
+   */
   function startGroeiMetGebaar() {
     const audio = groeiAudioRef.current;
-    if (!audio || !kijktNaarBloem) return;
-    setGroeiWachtOpTik(false);
-    setGedempt(false);
+    const stadiumNu = stadiumRef.current;
+    if (!audio) return;
+    if (stadiumNu !== "openen" && stadiumNu !== "bloem") return;
+
+    wisGroeiFade();
+    wisGroeiPauze();
+    audio.muted = false;
+    audio.volume = GROEI_VOLUME;
+    // play() eerst — alles daarna mag asynchroon
+    const poging = audio.play();
+
     magGroeiSpelenRef.current = true;
-    speelGroeiGeluid(audio);
+
+    const gelukt = () => {
+      setGedempt(false);
+      setGroeiWachtOpTik(false);
+    };
+    const mislukt = () => {
+      setGroeiWachtOpTik(true);
+    };
+
+    if (poging === undefined) gelukt();
+    else poging.then(gelukt).catch(mislukt);
   }
 
   function ontgrendelGroeiGeluid() {
@@ -384,6 +417,9 @@ export default function ZaadjeClient({
   useEffect(() => {
     const audio = groeiAudioRef.current;
     if (!audio || !kijktNaarBloem || gedempt) {
+      // Alleen hier stoppen — niet in de cleanup van de speel-tak,
+      // anders doodt React de play() die net in een klikhandler is gestart
+      // (setState → re-render → effect cleanup → pause).
       stopGroeiGeluid();
       if (!kijktNaarBloem || gedempt) setGroeiWachtOpTik(false);
       return;
@@ -400,11 +436,12 @@ export default function ZaadjeClient({
     }
 
     audio.addEventListener("ended", opEinde);
-    if (audio.paused || audio.ended) speelGroeiGeluid(audio);
+    // Alleen autoplay als er nog niets speelt (hint-pad start handmatig).
+    if (audio.paused) speelGroeiGeluid(audio);
 
     return () => {
       audio.removeEventListener("ended", opEinde);
-      stopGroeiGeluid();
+      // Geen stopGroeiGeluid() hier — zie comment hierboven.
     };
   }, [kijktNaarBloem, gedempt]);
 
@@ -613,14 +650,14 @@ export default function ZaadjeClient({
                   : "Zet geluid uit"
             }
             aria-pressed={gedempt}
-            onClick={() => {
-              // Bij geblokkeerde autoplay: eerste tik start geluid (gebruikersgebaar).
+            onPointerDown={(ev) => {
+              // pointerdown blijft op iOS binnen de user-activation; click kan te laat komen.
+              if (ev.button !== undefined && ev.button !== 0) return;
               if (groeiWachtOpTik && !gedempt) {
                 startGroeiMetGebaar();
                 return;
               }
               if (gedempt) {
-                // Unmute: play() moet in deze klik, niet pas in een useEffect.
                 startGroeiMetGebaar();
                 return;
               }
@@ -657,7 +694,10 @@ export default function ZaadjeClient({
             <button
               type="button"
               className="geluid-hint"
-              onClick={startGroeiMetGebaar}
+              onPointerDown={(ev) => {
+                if (ev.button !== undefined && ev.button !== 0) return;
+                startGroeiMetGebaar();
+              }}
             >
               tik om geluid te horen
             </button>
