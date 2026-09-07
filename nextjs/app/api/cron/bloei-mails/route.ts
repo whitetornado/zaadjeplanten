@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { stuurPush } from "@/lib/push";
 import { PRIJS_KORT } from "@/lib/prijs-tekst";
-import { berekenStadium, supabaseServer } from "@/lib/supabase";
+import { berekenStadium, supabaseServer, telAfstammelingen } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,6 +11,16 @@ function bruikbareEmail(email: unknown): string | null {
   if (typeof email !== "string") return null;
   const v = email.trim();
   return v || null;
+}
+
+function reisZin(stappen: number): string | null {
+  if (stappen <= 0) return null;
+  if (stappen === 1) return "Jouw zaadje reisde trouwens al naar 1 telefoon verder.";
+  return `Jouw zaadje reisde trouwens al naar ${stappen} telefoons verder.`;
+}
+
+function knopHtml(url: string, tekst: string) {
+  return `<p style="margin:24px 0 16px"><a href="${url}" style="display:inline-block;background:#5d4fb0;color:#f4f2ea;text-decoration:none;padding:12px 24px;border-radius:999px;font-family:sans-serif;font-size:15px;font-weight:500">${tekst}</a></p>`;
 }
 
 export async function GET(req: NextRequest) {
@@ -57,6 +67,8 @@ export async function GET(req: NextRequest) {
     const tekst = "Je zaadje van Oleg Morozov is opengebloeid.";
 
     if (mailAdres) {
+      const afstamming = await telAfstammelingen(zaadje.id);
+      const reis = reisZin(afstamming.stappenVerder);
       const { error: mailFout } = await resend.emails.send({
         from: "Oleg Morozov <bloem@zaadjeplanten.nl>",
         to: mailAdres,
@@ -64,7 +76,8 @@ export async function GET(req: NextRequest) {
         html: `
       <p>Liefde, muziek en schoonheid zullen de wereld redden.</p>
       <p>Je zaadje van Oleg Morozov is opengebloeid.</p>
-      <p><a href="${site}/z/${zaadje.code}">Bekijk je bloem</a></p>
+      ${reis ? `<p>${reis}</p>` : ""}
+      ${knopHtml(url, "Bekijk je bloem")}
       <p>${PRIJS_KORT}</p>
     `,
       });

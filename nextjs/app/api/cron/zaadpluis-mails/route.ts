@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { stuurPush } from "@/lib/push";
-import { PRIJS_KORT } from "@/lib/prijs-tekst";
 import { berekenStadium, supabaseServer } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +19,18 @@ function dagenTotVerwelken(geplantOp: string): number {
   return Math.max(0, Math.round((168 - u) / 24));
 }
 
-function termijnTekst(dagen: number): string {
-  if (dagen <= 0) return "minder dan een dag";
-  if (dagen === 1) return "ongeveer 1 dag";
-  return `ongeveer ${dagen} dagen`;
+function verwelkZin(dagen: number): string {
+  if (dagen <= 0) {
+    return "Nog minder dan een dag voor ze verwelkt zonder dat iemand haar heeft doorgegeven.";
+  }
+  if (dagen === 1) {
+    return "Nog 1 dag voor ze verwelkt zonder dat iemand haar heeft doorgegeven.";
+  }
+  return `Nog ${dagen} dagen voor ze verwelkt zonder dat iemand haar heeft doorgegeven.`;
+}
+
+function knopHtml(url: string, tekst: string) {
+  return `<p style="margin:24px 0 16px"><a href="${url}" style="display:inline-block;background:#5d4fb0;color:#f4f2ea;text-decoration:none;padding:12px 24px;border-radius:999px;font-family:sans-serif;font-size:15px;font-weight:500">${tekst}</a></p>`;
 }
 
 export async function GET(req: NextRequest) {
@@ -67,20 +74,20 @@ export async function GET(req: NextRequest) {
     const mailAdres = bruikbareEmail(zaadje.email);
     const url = `${site}/z/${zaadje.code}`;
     const dagen = zaadje.geplant_op ? dagenTotVerwelken(zaadje.geplant_op) : 0;
-    const termijn = termijnTekst(dagen);
-    const titel = "🌸 Ze is klaar om te blazen";
-    const tekst = `Je zaadje is nu een blaasbloem. Zonder actie verwelkt ze over ${termijn}.`;
+    const titel = "🌬️ Ze wacht op jou om verder te reizen";
+    const tekst = `Je bloem is nu een blaasbloem — helemaal klaar om door te geven. ${verwelkZin(dagen)}`;
 
     if (mailAdres) {
       const { error: mailFout } = await resend.emails.send({
         from: "Oleg Morozov <bloem@zaadjeplanten.nl>",
         to: mailAdres,
-        subject: "🌸 Ze is klaar om te blazen",
+        subject: "🌬️ Ze wacht op jou om verder te reizen",
         html: `
-      <p>Je zaadje is nu een blaasbloem — ze is klaar om te blazen.</p>
-      <p>Zonder actie verwelkt ze over ${termijn}.</p>
-      <p><a href="${url}">Blaas je bloem</a></p>
-      <p>${PRIJS_KORT}</p>
+      <p>Liefde, muziek en schoonheid zullen de wereld redden.</p>
+      <p>Je bloem is nu een blaasbloem — helemaal klaar om door te geven. Blaas haar uit, en er waait een nieuw zaadje naar iemand in jouw buurt.</p>
+      <p>${verwelkZin(dagen)}</p>
+      ${knopHtml(url, "Blaas haar door")}
+      <p>Elk zaadje dat verder reist, maakt kans op een boeket of een huiskamerconcert van Oleg — gratis, zonder aankoop.</p>
     `,
       });
 
