@@ -415,7 +415,7 @@ export async function haalKetenNaarWortel(zaadjeId: string): Promise<{
     }
     if (error || !data) break;
 
-    const rij = data as {
+    const rij = data as unknown as {
       id: string;
       ouder_id: string | null;
       generatie: number;
