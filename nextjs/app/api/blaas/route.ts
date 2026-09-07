@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer, genereerCode, berekenStadium } from "@/lib/supabase";
+import { stuurMijlpaalAlsNodig } from "@/lib/mijlpaal-mail";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       ouder_id: ouder.id,
       generatie: ouder.generatie + 1,
     })
-    .select("code")
+    .select("id, code, generatie")
     .single();
 
   if (kindFout || !kind) {
@@ -58,6 +59,22 @@ export async function POST(req: NextRequest) {
   ]);
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin;
+
+  try {
+    const { data: lijn } = await supabase
+      .from("lijnen")
+      .select("naam")
+      .eq("id", ouder.lijn_id)
+      .maybeSingle();
+    await stuurMijlpaalAlsNodig({
+      kindId: kind.id,
+      lijnNaam: lijn?.naam ?? "onbekend optreden",
+      site,
+    });
+  } catch (fout) {
+    console.warn("mijlpaal-mail overgeslagen", fout);
+  }
+
   return NextResponse.json({
     ok: true,
     generatie: ouder.generatie + 1,

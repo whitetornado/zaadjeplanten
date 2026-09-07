@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { stuurPush } from "@/lib/push";
+import { PRIJS_KORT } from "@/lib/prijs-tekst";
 import { berekenStadium, supabaseServer } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,7 @@ export async function GET(req: NextRequest) {
       <p>Je zaadje is nu een blaasbloem — ze is klaar om te blazen.</p>
       <p>Zonder actie verwelkt ze over ${termijn}.</p>
       <p><a href="${url}">Blaas je bloem</a></p>
+      <p>${PRIJS_KORT}</p>
     `,
       });
 

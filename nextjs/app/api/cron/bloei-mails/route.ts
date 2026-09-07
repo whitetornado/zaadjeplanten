@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { stuurPush } from "@/lib/push";
+import { PRIJS_KORT } from "@/lib/prijs-tekst";
 import { berekenStadium, supabaseServer } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest) {
       <p>Liefde, muziek en schoonheid zullen de wereld redden.</p>
       <p>Je zaadje van Oleg Morozov is opengebloeid.</p>
       <p><a href="${site}/z/${zaadje.code}">Bekijk je bloem</a></p>
+      <p>${PRIJS_KORT}</p>
     `,
       });
 

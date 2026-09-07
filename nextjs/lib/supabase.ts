@@ -130,6 +130,7 @@ export interface Zaadje {
   gewonnen_op?: string | null;
   bloei_mail_verzonden_op?: string | null;
   zaadpluis_mail_verzonden_op?: string | null;
+  mijlpaal_mail_verzonden_op?: string | null;
 }
 
 export type TuinLijn = {
@@ -374,4 +375,62 @@ export async function telAfstammelingen(zaadjeId: string): Promise<Afstamming> {
   }
 
   return { stappenVerder, hoogsteGeneratie, stappen };
+}
+
+export type KetenSchakel = {
+  id: string;
+  ouder_id: string | null;
+  generatie: number;
+  email: string | null;
+  mijlpaal_mail_verzonden_op: string | null;
+};
+
+/**
+ * Volgt de keten terug naar de wortel via ouder_id (rechte lijn, max. 50 stappen).
+ * Eerste element is het startzaadje, daarna de ouder, grootouder, enz.
+ */
+export async function haalKetenNaarWortel(zaadjeId: string): Promise<{
+  schakels: KetenSchakel[];
+  mijlpaalKolom: boolean;
+}> {
+  const supabase = supabaseServer();
+  const schakels: KetenSchakel[] = [];
+  let huidigId: string | null = zaadjeId;
+  let mijlpaalKolom = true;
+
+  for (let i = 0; i < MAX_AFSTAMMING_STAPPEN && huidigId; i++) {
+    const velden = mijlpaalKolom
+      ? "id, ouder_id, generatie, email, mijlpaal_mail_verzonden_op"
+      : "id, ouder_id, generatie, email";
+    const { data, error } = await supabase
+      .from("zaadjes")
+      .select(velden)
+      .eq("id", huidigId)
+      .maybeSingle();
+
+    if (error && mijlpaalKolom) {
+      mijlpaalKolom = false;
+      i -= 1;
+      continue;
+    }
+    if (error || !data) break;
+
+    const rij = data as {
+      id: string;
+      ouder_id: string | null;
+      generatie: number;
+      email: string | null;
+      mijlpaal_mail_verzonden_op?: string | null;
+    };
+    schakels.push({
+      id: rij.id,
+      ouder_id: rij.ouder_id,
+      generatie: rij.generatie ?? 0,
+      email: rij.email ?? null,
+      mijlpaal_mail_verzonden_op: rij.mijlpaal_mail_verzonden_op ?? null,
+    });
+    huidigId = rij.ouder_id;
+  }
+
+  return { schakels, mijlpaalKolom };
 }
